@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Button } from './ui/button';
-import { Check, Copy, Info } from 'lucide-react';
+import { Check, Copy, Info, PlusCircle, Trash2 } from 'lucide-react';
 import {
   calculateEMI,
   calculateTotalInterestAndPayment,
@@ -48,14 +48,8 @@ const chartConfig = {
   withoutPrepayment: { label: 'Without Prepayment', color: 'hsl(var(--accent))' },
 } satisfies ChartConfig;
 
-// A custom hook for debouncing
 const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
-  const callbackRef = useRef(callback);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    callbackRef.current = callback;
-  }, [callback]);
 
   useEffect(() => {
     return () => {
@@ -71,22 +65,13 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
         clearTimeout(timeoutRef.current);
       }
       timeoutRef.current = setTimeout(() => {
-        callbackRef.current(...args);
+        callback(...args);
       }, delay);
     },
     [delay]
   );
 
   return debouncedCallback;
-};
-
-
-const createQueryString = (params: Record<string, string | number>) => {
-  const newSearchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    newSearchParams.set(key, String(value));
-  }
-  return newSearchParams.toString();
 };
 
 const NumberInputWithSlider = ({
@@ -169,9 +154,11 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
     return calculateTotalInterestAndPayment(amount, rate, tenure);
   }, [amount, rate, tenure]);
 
+  const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
+
   useEffect(() => {
-    updateUrl({ amount, rate, tenure });
-  }, [amount, rate, tenure, updateUrl]);
+    debouncedUpdateUrl({ amount, rate, tenure });
+  }, [amount, rate, tenure, debouncedUpdateUrl]);
   
   const pieData = [
     { name: 'Principal Amount', value: amount, fill: 'var(--color-principal)' },
@@ -262,92 +249,135 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
 
 
 function LoanComparison({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
-    const [loan1, setLoan1] = useState({
-        amount: Number(searchParams.get('l1_amount')) || 100000,
-        rate: Number(searchParams.get('l1_rate')) || 8.5,
-        tenure: Number(searchParams.get('l1_tenure')) || 10,
-    });
-    const [loan2, setLoan2] = useState({
-        amount: Number(searchParams.get('l2_amount')) || 100000,
-        rate: Number(searchParams.get('l2_rate')) || 9.0,
-        tenure: Number(searchParams.get('l2_tenure')) || 10,
-    });
+    const initialLoans = () => {
+        const loansFromUrl = [];
+        let i = 0;
+        while (searchParams.has(`l${i}_amount`)) {
+            loansFromUrl.push({
+                id: Date.now() + i,
+                amount: Number(searchParams.get(`l${i}_amount`)) || 100000,
+                rate: Number(searchParams.get(`l${i}_rate`)) || 8.5,
+                tenure: Number(searchParams.get(`l${i}_tenure`)) || 10,
+            });
+            i++;
+        }
+        if (loansFromUrl.length === 0) {
+            return [
+                { id: Date.now() + 1, amount: 100000, rate: 8.5, tenure: 10 },
+                { id: Date.now() + 2, amount: 100000, rate: 9.0, tenure: 10 },
+            ];
+        }
+        return loansFromUrl;
+    };
+
+    const [loans, setLoans] = useState(initialLoans);
+    const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
 
     useEffect(() => {
-        updateUrl({
-            l1_amount: loan1.amount, l1_rate: loan1.rate, l1_tenure: loan1.tenure,
-            l2_amount: loan2.amount, l2_rate: loan2.rate, l2_tenure: loan2.tenure,
+        const params = {};
+        loans.forEach((loan, index) => {
+            params[`l${index}_amount`] = loan.amount;
+            params[`l${index}_rate`] = loan.rate;
+            params[`l${index}_tenure`] = loan.tenure;
         });
-    }, [loan1, loan2, updateUrl]);
+        debouncedUpdateUrl(params);
+    }, [loans, debouncedUpdateUrl]);
 
-    const result1 = calculateTotalInterestAndPayment(loan1.amount, loan1.rate, loan1.tenure);
-    const result2 = calculateTotalInterestAndPayment(loan2.amount, loan2.rate, loan2.tenure);
-    
-    const comparisonData = [
-        { name: 'Monthly EMI', loan1: result1.emi, loan2: result2.emi },
-        { name: 'Total Interest', loan1: result1.totalInterest, loan2: result2.totalInterest },
-        { name: 'Total Payment', loan1: result1.totalPayment, loan2: result2.totalPayment },
-    ];
-    
-    const savings = result1.totalPayment - result2.totalPayment;
+    const handleLoanChange = (id: number, field: string, value: number) => {
+        setLoans(loans.map(loan => loan.id === id ? { ...loan, [field]: value } : loan));
+    };
+
+    const addLoan = () => {
+        const newLoan = { id: Date.now(), amount: 100000, rate: 10, tenure: 15 };
+        setLoans([...loans, newLoan]);
+    };
+
+    const removeLoan = (id: number) => {
+        if (loans.length > 1) {
+            setLoans(loans.filter(loan => loan.id !== id));
+        }
+    };
+
+    const loanResults = useMemo(() => loans.map(loan => calculateTotalInterestAndPayment(loan.amount, loan.rate, loan.tenure)), [loans]);
+
+    const comparisonData = useMemo(() => {
+        const dataPoints = ['Monthly EMI', 'Total Interest', 'Total Payment'];
+        return dataPoints.map(name => {
+            const entry = { name };
+            loanResults.forEach((result, i) => {
+                const key = name.toLowerCase().replace(' ', '');
+                entry[`loan${i}`] = result[key === 'monthlyemi' ? 'emi' : key];
+            });
+            return entry;
+        });
+    }, [loanResults]);
+
+    const dynamicChartConfig: ChartConfig = useMemo(() => {
+        const config = {};
+        loans.forEach((_, i) => {
+            config[`loan${i}`] = { label: `Loan ${i + 1}`, color: `hsl(var(--chart-${(i % 5) + 1}))` };
+        });
+        return config;
+    }, [loans]);
 
     return (
-        <div className="grid lg:grid-cols-3 gap-8">
-            <Card className="bg-card/50">
-                <CardHeader>
-                    <CardTitle className="font-headline text-primary">Loan 1 Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                     <NumberInputWithSlider label="Amount" unit={currency} value={loan1.amount} onValueChange={(v) => setLoan1({...loan1, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
-                     <NumberInputWithSlider label="Interest Rate" unit="%" value={loan1.rate} onValueChange={(v) => setLoan1({...loan1, rate: v})} min={1} max={20} step={0.1} />
-                     <NumberInputWithSlider label="Tenure" unit="Years" value={loan1.tenure} onValueChange={(v) => setLoan1({...loan1, tenure: v})} min={1} max={30} step={1} />
-                </CardContent>
-            </Card>
-            <Card className="bg-card/50">
-                <CardHeader>
-                    <CardTitle className="font-headline text-chart-2">Loan 2 Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <NumberInputWithSlider label="Amount" unit={currency} value={loan2.amount} onValueChange={(v) => setLoan2({...loan2, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
-                    <NumberInputWithSlider label="Interest Rate" unit="%" value={loan2.rate} onValueChange={(v) => setLoan2({...loan2, rate: v})} min={1} max={20} step={0.1} />
-                    <NumberInputWithSlider label="Tenure" unit="Years" value={loan2.tenure} onValueChange={(v) => setLoan2({...loan2, tenure: v})} min={1} max={30} step={1} />
-                </CardContent>
-            </Card>
-            <div className="space-y-8 lg:col-span-3">
-                 <Card className="bg-card/50">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="font-headline">Comparison</CardTitle>
-                            <ShareButton/>
-                        </div>
-                        <CardDescription>
-                            Comparing the two loan offers side-by-side. 
-                            {savings !== 0 && (
-                                <span className={cn("font-bold", savings > 0 ? "text-green-600" : "text-red-600")}>
-                                    {' '}Choosing Loan 2 could {savings > 0 ? 'save you' : 'cost you an extra'} {formatCurrency(Math.abs(savings), currency)}.
-                                </span>
+        <div className="flex flex-col gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {loans.map((loan, index) => (
+                    <Card key={loan.id} className="bg-card/50 flex flex-col">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="font-headline" style={{ color: `hsl(var(--chart-${(index % 5) + 1}))` }}>
+                                Loan {index + 1}
+                            </CardTitle>
+                            {loans.length > 1 && (
+                                <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground" onClick={() => removeLoan(loan.id)}>
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
                             )}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={comparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => formatCurrency(Number(value), currency, 0)} />
-                                    <RechartsTooltip
-                                        cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
-                                        content={<ChartTooltipContent formatter={(value, name) => <div><span className="font-bold">{name === 'loan1' ? 'Loan 1:' : 'Loan 2:'}</span> {formatCurrency(Number(value), currency)}</div>} />}
-                                    />
-                                    <Legend />
-                                    <Bar dataKey="loan1" fill="var(--color-loan1)" radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="loan2" fill="var(--color-loan2)" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent className="space-y-6 flex-grow">
+                             <NumberInputWithSlider label="Amount" unit={currency} value={loan.amount} onValueChange={(v) => handleLoanChange(loan.id, 'amount', v)} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
+                             <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => handleLoanChange(loan.id, 'rate', v)} min={1} max={20} step={0.1} />
+                             <NumberInputWithSlider label="Tenure" unit="Years" value={loan.tenure} onValueChange={(v) => handleLoanChange(loan.id, 'tenure', v)} min={1} max={30} step={1} />
+                        </CardContent>
+                    </Card>
+                ))}
+                 <div className="flex items-center justify-center min-h-[300px]">
+                    <Button variant="outline" className="w-full h-full border-dashed" onClick={addLoan}>
+                        <PlusCircle className="mr-2 h-5 w-5" />
+                        Add Another Loan
+                    </Button>
+                </div>
             </div>
+            <Card className="bg-card/50">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Comparison Results</CardTitle>
+                        <ShareButton/>
+                    </div>
+                    <CardDescription>
+                        A side-by-side comparison of your loan options.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={dynamicChartConfig} className="min-h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={comparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                                <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => formatCurrency(Number(value), currency, 0)} />
+                                <RechartsTooltip
+                                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
+                                    content={<ChartTooltipContent formatter={(value, name) => <div><span className="font-bold">{dynamicChartConfig[name]?.label || name}:</span> {formatCurrency(Number(value), currency)}</div>} />}
+                                />
+                                <Legend />
+                                {loans.map((_, i) => (
+                                    <Bar key={`bar-${i}`} dataKey={`loan${i}`} fill={`var(--color-loan${i})`} radius={[4, 4, 0, 0]} />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
         </div>
     );
 }
@@ -363,13 +393,14 @@ function BalanceTransferAnalysis({ currency, searchParams, updateUrl }: { curren
         tenure: Number(searchParams.get('n_tenure')) || 3,
         fee: Number(searchParams.get('n_fee')) || 1,
     });
+    const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
     
     useEffect(() => {
-        updateUrl({
+        debouncedUpdateUrl({
             c_principal: currentLoan.principal, c_rate: currentLoan.rate, c_tenure: currentLoan.tenure,
             n_rate: newLoan.rate, n_tenure: newLoan.tenure, n_fee: newLoan.fee,
         });
-    }, [currentLoan, newLoan, updateUrl]);
+    }, [currentLoan, newLoan, debouncedUpdateUrl]);
 
     const currentResult = calculateTotalInterestAndPayment(currentLoan.principal, currentLoan.rate, currentLoan.tenure);
     const newFeeAmount = (currentLoan.principal * newLoan.fee) / 100;
@@ -450,12 +481,13 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
         tenure: Number(searchParams.get('p_tenure')) || 20,
         prepayment: Number(searchParams.get('p_prepayment')) || 1000,
     });
-    
+    const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
+
     useEffect(() => {
-        updateUrl({
+        debouncedUpdateUrl({
             p_amount: loan.amount, p_rate: loan.rate, p_tenure: loan.tenure, p_prepayment: loan.prepayment
         });
-    }, [loan, updateUrl]);
+    }, [loan, debouncedUpdateUrl]);
 
     const originalResult = calculateTotalInterestAndPayment(loan.amount, loan.rate, loan.tenure);
     const prepaymentResult = calculatePrepayment(loan.amount, loan.rate, loan.tenure, loan.prepayment);
@@ -531,37 +563,43 @@ export function LoanLensApp({
   const router = useRouter();
   const pathname = usePathname();
   const currentSearchParams = useSearchParams();
-  const defaultTab = searchParams?.tab || 'emi-calculator';
+  const defaultTab = currentSearchParams.get('tab') || 'emi-calculator';
   const [currency, setCurrency] = useState(() => currentSearchParams.get('currency') || 'USD');
 
-  const updateUrl = useDebouncedCallback((params: Record<string, any>) => {
+  const updateUrl = useCallback((params: Record<string, any>) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
+    
+    // Clear old loan params
+    for (const key of Array.from(newParams.keys())) {
+        if (key.startsWith('l') && (key.endsWith('_amount') || key.endsWith('_rate') || key.endsWith('_tenure'))) {
+            newParams.delete(key);
+        }
+    }
+
     Object.entries(params).forEach(([key, value]) => {
-      if (value) {
+      if (value !== undefined && value !== null) {
         newParams.set(key, String(value));
       } else {
         newParams.delete(key);
       }
     });
-    router.replace(`${pathname}?${newParams.toString()}`);
-  }, 500);
+    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+  }, [currentSearchParams, pathname, router]);
   
   const onTabChange = (tab: string) => {
-    const newParams = new URLSearchParams();
-    // copy existing params
-    currentSearchParams.forEach((value, key) => {
-        if(key !== 'tab') {
-            newParams.set(key, value);
-        }
-    });
+    const newParams = new URLSearchParams(window.location.search);
     newParams.set('tab', tab);
-    router.replace(`${pathname}?${newParams.toString()}`);
+    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
   }
 
   const handleCurrencyChange = (newCurrency: string) => {
       setCurrency(newCurrency);
-      updateUrl({ currency: newCurrency });
+      const newParams = new URLSearchParams(window.location.search);
+      newParams.set('currency', newCurrency);
+      router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
   }
+  
+  const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
 
   return (
     <TooltipProvider>
