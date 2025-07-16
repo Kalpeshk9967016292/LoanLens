@@ -564,14 +564,21 @@ const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
 
 export function LoanLensApp({
   searchParams,
+  suggestedCurrency,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
+  suggestedCurrency?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const currentSearchParams = useSearchParams();
   const defaultTab = currentSearchParams.get('tab') || 'emi-calculator';
-  const [currency, setCurrency] = useState(() => currentSearchParams.get('currency') || 'USD');
+  const [currency, setCurrency] = useState(() => {
+    const urlCurrency = currentSearchParams.get('currency');
+    if (urlCurrency && currencies.includes(urlCurrency)) return urlCurrency;
+    if (suggestedCurrency && currencies.includes(suggestedCurrency)) return suggestedCurrency;
+    return 'USD';
+  });
 
   const updateUrl = useCallback((params: Record<string, any>, clearLoanParams = false) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
@@ -614,7 +621,11 @@ export function LoanLensApp({
       router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
   }
   
-  const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
+  useEffect(() => {
+    if (suggestedCurrency && !currentSearchParams.has('currency') && currencies.includes(suggestedCurrency)) {
+      setCurrency(suggestedCurrency);
+    }
+  }, [suggestedCurrency, currentSearchParams]);
 
   return (
     <TooltipProvider>

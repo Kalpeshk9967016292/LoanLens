@@ -2,11 +2,12 @@ import { Suspense } from 'react';
 import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LoanLensApp } from '@/components/loan-lens-app';
+import { CurrencyDetector } from '@/components/currency-detector';
 
 export default function Home({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: { [key:string]: string | string[] | undefined };
 }) {
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -25,7 +26,11 @@ export default function Home({
       </header>
       <main className="flex-1">
         <Suspense fallback={<div className="container py-8">Loading...</div>}>
-          <LoanLensApp searchParams={searchParams} />
+          <CurrencyDetector>
+            {(suggestedCurrency) => (
+              <LoanLensApp searchParams={searchParams} suggestedCurrency={suggestedCurrency} />
+            )}
+          </CurrencyDetector>
         </Suspense>
       </main>
       <footer className="py-6 md:px-8 md:py-0 border-t">
