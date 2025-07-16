@@ -564,10 +564,8 @@ const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
 
 export function LoanLensApp({
   searchParams,
-  suggestedCurrency,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
-  suggestedCurrency?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -576,8 +574,7 @@ export function LoanLensApp({
   const [currency, setCurrency] = useState(() => {
     const urlCurrency = currentSearchParams.get('currency');
     if (urlCurrency && currencies.includes(urlCurrency)) return urlCurrency;
-    if (suggestedCurrency && currencies.includes(suggestedCurrency)) return suggestedCurrency;
-    return 'USD';
+    return 'INR';
   });
 
   const updateUrl = useCallback((params: Record<string, any>, clearLoanParams = false) => {
@@ -622,10 +619,12 @@ export function LoanLensApp({
   }
   
   useEffect(() => {
-    if (suggestedCurrency && !currentSearchParams.has('currency') && currencies.includes(suggestedCurrency)) {
-      setCurrency(suggestedCurrency);
+    // Set initial currency in URL if not present
+    if (!currentSearchParams.has('currency')) {
+        handleCurrencyChange(currency);
     }
-  }, [suggestedCurrency, currentSearchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <TooltipProvider>
@@ -671,5 +670,3 @@ export function LoanLensApp({
     </TooltipProvider>
   );
 }
-
-    
