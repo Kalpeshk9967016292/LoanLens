@@ -10,6 +10,14 @@ export function formatCurrency(
   currency = 'USD',
   fractionDigits = 2
 ) {
+  if (currency === 'INR') {
+    const formatter = new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    });
+    return `Rs. ${formatter.format(value)}`;
+  }
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
