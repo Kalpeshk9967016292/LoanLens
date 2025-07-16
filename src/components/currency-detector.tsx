@@ -5,19 +5,22 @@ import { ReactNode, Suspense } from 'react';
 
 async function CurrencySuggestion({ children }: { children: (suggestedCurrency: string | null) => ReactNode }) {
     const headersList = headers();
-    const country = headersList.get('x-vercel-ip-country') || 'US';
+    const country = headersList.get('x-vercel-ip-country');
     
-    let suggestedCurrency = 'USD';
-    try {
-        const result = await suggestCurrency({ countryCode: country });
-        if (result.currency) {
-            suggestedCurrency = result.currency;
+    let suggestedCurrency: string | null = 'USD';
+    if (country) {
+        try {
+            const result = await suggestCurrency({ countryCode: country });
+            if (result.currency) {
+                suggestedCurrency = result.currency;
+            }
+        } catch (error) {
+            console.error("Could not fetch currency suggestion, falling back to USD:", error);
+            // Fallback to USD
+            suggestedCurrency = 'USD';
         }
-    } catch (error) {
-        console.error("Could not fetch currency suggestion:", error);
-        // Fallback to USD
-        suggestedCurrency = 'USD';
     }
+
 
     return <>{children(suggestedCurrency)}</>;
 }
