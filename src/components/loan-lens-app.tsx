@@ -68,7 +68,8 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
         callback(...args);
       }, delay);
     },
-    [delay]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [delay, callback]
   );
 
   return debouncedCallback;
@@ -255,6 +256,7 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
         while (searchParams.has(`l${i}_amount`)) {
             loansFromUrl.push({
                 id: Date.now() + i,
+                name: searchParams.get(`l${i}_name`) || `Loan ${i + 1}`,
                 amount: Number(searchParams.get(`l${i}_amount`)) || 100000,
                 rate: Number(searchParams.get(`l${i}_rate`)) || 8.5,
                 tenure: Number(searchParams.get(`l${i}_tenure`)) || 10,
@@ -263,8 +265,8 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
         }
         if (loansFromUrl.length === 0) {
             return [
-                { id: Date.now() + 1, amount: 100000, rate: 8.5, tenure: 10 },
-                { id: Date.now() + 2, amount: 100000, rate: 9.0, tenure: 10 },
+                { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
+                { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
             ];
         }
         return loansFromUrl;
@@ -276,6 +278,7 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
     useEffect(() => {
         const params = {};
         loans.forEach((loan, index) => {
+            params[`l${index}_name`] = loan.name;
             params[`l${index}_amount`] = loan.amount;
             params[`l${index}_rate`] = loan.rate;
             params[`l${index}_tenure`] = loan.tenure;
@@ -283,12 +286,12 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
         debouncedUpdateUrl(params);
     }, [loans, debouncedUpdateUrl]);
 
-    const handleLoanChange = (id: number, field: string, value: number) => {
+    const handleLoanChange = (id: number, field: string, value: string | number) => {
         setLoans(loans.map(loan => loan.id === id ? { ...loan, [field]: value } : loan));
     };
 
     const addLoan = () => {
-        const newLoan = { id: Date.now(), amount: 100000, rate: 10, tenure: 15 };
+        const newLoan = { id: Date.now(), name: `Loan ${loans.length + 1}`, amount: 100000, rate: 10, tenure: 15 };
         setLoans([...loans, newLoan]);
     };
 
@@ -314,8 +317,8 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
 
     const dynamicChartConfig: ChartConfig = useMemo(() => {
         const config = {};
-        loans.forEach((_, i) => {
-            config[`loan${i}`] = { label: `Loan ${i + 1}`, color: `hsl(var(--chart-${(i % 5) + 1}))` };
+        loans.forEach((loan, i) => {
+            config[`loan${i}`] = { label: loan.name, color: `hsl(var(--chart-${(i % 5) + 1}))` };
         });
         return config;
     }, [loans]);
@@ -325,9 +328,14 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loans.map((loan, index) => (
                     <Card key={loan.id} className="bg-card/50 flex flex-col">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="font-headline" style={{ color: `hsl(var(--chart-${(index % 5) + 1}))` }}>
-                                Loan {index + 1}
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                             <CardTitle className="font-headline text-lg" style={{ color: `hsl(var(--chart-${(index % 5) + 1}))` }}>
+                                <Input
+                                    value={loan.name}
+                                    onChange={(e) => handleLoanChange(loan.id, 'name', e.target.value)}
+                                    className="text-lg font-semibold p-0 h-auto border-none focus-visible:ring-0"
+                                    style={{ color: `hsl(var(--chart-${(index % 5) + 1}))` }}
+                                />
                             </CardTitle>
                             {loans.length > 1 && (
                                 <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground" onClick={() => removeLoan(loan.id)}>
@@ -335,7 +343,7 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
                                 </Button>
                             )}
                         </CardHeader>
-                        <CardContent className="space-y-6 flex-grow">
+                        <CardContent className="space-y-6 flex-grow pt-4">
                              <NumberInputWithSlider label="Amount" unit={currency} value={loan.amount} onValueChange={(v) => handleLoanChange(loan.id, 'amount', v)} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
                              <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => handleLoanChange(loan.id, 'rate', v)} min={1} max={20} step={0.1} />
                              <NumberInputWithSlider label="Tenure" unit="Years" value={loan.tenure} onValueChange={(v) => handleLoanChange(loan.id, 'tenure', v)} min={1} max={30} step={1} />
@@ -569,10 +577,12 @@ export function LoanLensApp({
   const updateUrl = useCallback((params: Record<string, any>) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
     
-    // Clear old loan params
-    for (const key of Array.from(newParams.keys())) {
-        if (key.startsWith('l') && (key.endsWith('_amount') || key.endsWith('_rate') || key.endsWith('_tenure'))) {
-            newParams.delete(key);
+    // Clear old loan params before setting new ones for comparison tab
+    if (params.tab === 'loan-comparison') {
+        for (const key of Array.from(newParams.keys())) {
+            if (key.startsWith('l') && (key.endsWith('_amount') || key.endsWith('_rate') || key.endsWith('_tenure') || key.endsWith('_name'))) {
+                newParams.delete(key);
+            }
         }
     }
 
@@ -588,8 +598,15 @@ export function LoanLensApp({
   
   const onTabChange = (tab: string) => {
     const newParams = new URLSearchParams(window.location.search);
-    newParams.set('tab', tab);
-    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+    const paramsToKeep = ['currency'];
+    const currentParams = new URLSearchParams(window.location.search);
+    const newSearch = new URLSearchParams();
+    
+    paramsToKeep.forEach(p => {
+        if(currentParams.has(p)) newSearch.set(p, currentParams.get(p)!);
+    });
+    newSearch.set('tab', tab);
+    router.replace(`${pathname}?${newSearch.toString()}`, { scroll: false });
   }
 
   const handleCurrencyChange = (newCurrency: string) => {
@@ -645,3 +662,4 @@ export function LoanLensApp({
     </TooltipProvider>
   );
 }
+
