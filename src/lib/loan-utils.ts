@@ -1,10 +1,12 @@
+import { addMonths, format } from 'date-fns';
+
 export const calculateEMI = (principal: number, annualRate: number, tenureYears: number): number => {
     if (principal <= 0 || annualRate <= 0 || tenureYears <= 0) return 0;
 
     const monthlyRate = annualRate / 12 / 100;
     const tenureMonths = tenureYears * 12;
     const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) / (Math.pow(1 + monthlyRate, tenureMonths) - 1);
-    return emi;
+    return isNaN(emi) ? 0 : emi;
 };
 
 export const calculateTotalInterestAndPayment = (principal: number, annualRate: number, tenureYears: number) => {
@@ -22,6 +24,45 @@ export const calculateTotalInterestAndPayment = (principal: number, annualRate: 
         totalInterest,
     };
 };
+
+export const generateAmortizationSchedule = (principal: number, annualRate: number, tenureYears: number, startDate: Date) => {
+    if (principal <= 0 || annualRate <= 0 || tenureYears <= 0) {
+        return [];
+    }
+
+    const monthlyRate = annualRate / 12 / 100;
+    const tenureMonths = tenureYears * 12;
+    const emi = calculateEMI(principal, annualRate, tenureYears);
+    
+    if (emi === 0 || !isFinite(emi)) {
+        return [];
+    }
+    
+    const schedule = [];
+    let balance = principal;
+
+    for (let i = 0; i < tenureMonths; i++) {
+        const interestPaid = balance * monthlyRate;
+        const principalPaid = emi - interestPaid;
+        balance -= principalPaid;
+
+        // Ensure balance doesn't go negative on the last payment due to rounding
+        if (i === tenureMonths - 1 && balance < 1 && balance > -1) {
+            balance = 0;
+        }
+
+        schedule.push({
+            month: format(addMonths(startDate, i), 'MMM yyyy'),
+            emi: emi,
+            interestPaid: interestPaid,
+            principalPaid: principalPaid,
+            balance: balance,
+        });
+    }
+
+    return schedule;
+};
+
 
 export const calculatePrepayment = (
   principal: number,

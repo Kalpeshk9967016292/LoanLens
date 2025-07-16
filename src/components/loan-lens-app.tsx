@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -21,11 +22,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Button } from './ui/button';
-import { Check, Copy, Info, PlusCircle, Trash2 } from 'lucide-react';
+import { CalendarIcon, Check, Copy, Info, PlusCircle, Trash2 } from 'lucide-react';
 import {
   calculateEMI,
   calculateTotalInterestAndPayment,
   calculatePrepayment,
+  generateAmortizationSchedule,
 } from '@/lib/loan-utils';
 import { cn, formatCurrency } from '@/lib/utils';
 import {
@@ -38,6 +40,11 @@ import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, XAxis, YAxis, Toolti
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { format } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { ScrollArea } from './ui/scroll-area';
 
 const chartConfig = {
   principal: { label: 'Principal', color: 'hsl(var(--primary))' },
@@ -51,14 +58,6 @@ const chartConfig = {
 const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
   const debouncedCallback = useCallback(
     (...args: any[]) => {
       if (timeoutRef.current) {
@@ -70,6 +69,14 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
     },
     [callback, delay]
   );
+    
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return debouncedCallback;
 };
@@ -145,20 +152,58 @@ function ShareButton() {
     );
 }
 
+function DatePicker({ date, setDate, label }: { date: Date, setDate: (date: Date) => void, label: string }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant={"outline"}
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !date && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "PPP") : <span>Pick a date</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => d && setDate(d)}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
   const [amount, setAmount] = useState(() => Number(searchParams.get('amount')) || 100000);
   const [rate, setRate] = useState(() => Number(searchParams.get('rate')) || 8.5);
   const [tenure, setTenure] = useState(() => Number(searchParams.get('tenure')) || 5);
+  const [startDate, setStartDate] = useState(() => {
+      const dateStr = searchParams.get('startDate');
+      return dateStr ? new Date(dateStr) : new Date();
+  });
 
   const { emi, totalInterest, totalPayment } = useMemo(() => {
     return calculateTotalInterestAndPayment(amount, rate, tenure);
   }, [amount, rate, tenure]);
 
+  const amortizationSchedule = useMemo(() => {
+    return generateAmortizationSchedule(amount, rate, tenure, startDate);
+  }, [amount, rate, tenure, startDate]);
+
   const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
 
   useEffect(() => {
-    debouncedUpdateUrl({ amount, rate, tenure });
-  }, [amount, rate, tenure, debouncedUpdateUrl]);
+    debouncedUpdateUrl({ amount, rate, tenure, startDate: startDate.toISOString() });
+  }, [amount, rate, tenure, startDate, debouncedUpdateUrl]);
   
   const pieData = [
     { name: 'Principal Amount', value: amount, fill: 'var(--color-principal)' },
@@ -166,6 +211,7 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
   ];
 
   return (
+    <div className="space-y-8">
     <div className="grid md:grid-cols-2 gap-8">
       <Card className="bg-card/50">
         <CardHeader>
@@ -200,6 +246,7 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
             max={30}
             step={1}
           />
+          <DatePicker date={startDate} setDate={setStartDate} label="Loan Start Date" />
         </CardContent>
       </Card>
       <div className="space-y-8">
@@ -243,6 +290,41 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
             </CardContent>
         </Card>
       </div>
+    </div>
+    {amortizationSchedule.length > 0 && (
+    <Card>
+        <CardHeader>
+            <CardTitle className="font-headline">Amortization Schedule</CardTitle>
+            <CardDescription>A detailed breakdown of your monthly payments over the loan tenure.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <ScrollArea className="h-96">
+                <Table>
+                    <TableHeader className='sticky top-0 bg-background'>
+                        <TableRow>
+                            <TableHead className="w-[120px]">Month-Year</TableHead>
+                            <TableHead className="text-right">EMI</TableHead>
+                            <TableHead className="text-right">Interest Paid</TableHead>
+                            <TableHead className="text-right">Principal Paid</TableHead>
+                            <TableHead className="text-right">Outstanding Balance</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {amortizationSchedule.map((row) => (
+                            <TableRow key={row.month}>
+                                <TableCell className="font-medium">{row.month}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(row.emi, currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(row.interestPaid, currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(row.principalPaid, currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(row.balance, currency)}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </ScrollArea>
+        </CardContent>
+    </Card>
+    )}
     </div>
   );
 }
