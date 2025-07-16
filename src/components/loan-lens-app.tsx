@@ -37,6 +37,7 @@ import {
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, Line, LineChart } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const chartConfig = {
   principal: { label: 'Principal', color: 'hsl(var(--primary))' },
@@ -49,10 +50,14 @@ const chartConfig = {
 
 // A custom hook for debouncing
 const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
+  const callbackRef = useRef(callback);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Cleanup the timeout on unmount
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -66,10 +71,10 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
         clearTimeout(timeoutRef.current);
       }
       timeoutRef.current = setTimeout(() => {
-        callback(...args);
+        callbackRef.current(...args);
       }, delay);
     },
-    [callback, delay]
+    [delay]
   );
 
   return debouncedCallback;
@@ -155,7 +160,7 @@ function ShareButton() {
     );
 }
 
-function EmiCalculator({ searchParams, updateUrl }: { searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
   const [amount, setAmount] = useState(() => Number(searchParams.get('amount')) || 100000);
   const [rate, setRate] = useState(() => Number(searchParams.get('rate')) || 8.5);
   const [tenure, setTenure] = useState(() => Number(searchParams.get('tenure')) || 5);
@@ -182,13 +187,13 @@ function EmiCalculator({ searchParams, updateUrl }: { searchParams: URLSearchPar
         <CardContent className="space-y-6">
           <NumberInputWithSlider
             label="Loan Amount"
-            unit="USD"
+            unit={currency}
             value={amount}
             onValueChange={setAmount}
             min={1000}
             max={1000000}
             step={1000}
-            format={(v) => formatCurrency(v, 'USD')}
+            format={(v) => formatCurrency(v, currency)}
           />
           <NumberInputWithSlider
             label="Interest Rate"
@@ -222,15 +227,15 @@ function EmiCalculator({ searchParams, updateUrl }: { searchParams: URLSearchPar
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg bg-background text-center">
               <Label className="text-muted-foreground">Monthly EMI</Label>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(emi, 'USD')}</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(emi, currency)}</p>
             </div>
             <div className="p-4 rounded-lg bg-background text-center">
               <Label className="text-muted-foreground">Total Interest</Label>
-              <p className="text-2xl font-bold">{formatCurrency(totalInterest, 'USD')}</p>
+              <p className="text-2xl font-bold">{formatCurrency(totalInterest, currency)}</p>
             </div>
             <div className="p-4 rounded-lg bg-background text-center">
               <Label className="text-muted-foreground">Total Payment</Label>
-              <p className="text-2xl font-bold">{formatCurrency(totalPayment, 'USD')}</p>
+              <p className="text-2xl font-bold">{formatCurrency(totalPayment, currency)}</p>
             </div>
           </CardContent>
         </Card>
@@ -242,7 +247,7 @@ function EmiCalculator({ searchParams, updateUrl }: { searchParams: URLSearchPar
                 <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                     <ResponsiveContainer width="100%" height={250}>
                         <PieChart>
-                        <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                        <RechartsTooltip content={<ChartTooltipContent hideLabel formatter={(value) => formatCurrency(Number(value), currency)} />} />
                         <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={5} />
                         <Legend/>
                         </PieChart>
@@ -256,7 +261,7 @@ function EmiCalculator({ searchParams, updateUrl }: { searchParams: URLSearchPar
 }
 
 
-function LoanComparison({ searchParams, updateUrl }: { searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function LoanComparison({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
     const [loan1, setLoan1] = useState({
         amount: Number(searchParams.get('l1_amount')) || 100000,
         rate: Number(searchParams.get('l1_rate')) || 8.5,
@@ -293,7 +298,7 @@ function LoanComparison({ searchParams, updateUrl }: { searchParams: URLSearchPa
                     <CardTitle className="font-headline text-primary">Loan 1 Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                     <NumberInputWithSlider label="Amount" unit="USD" value={loan1.amount} onValueChange={(v) => setLoan1({...loan1, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, 'USD')} />
+                     <NumberInputWithSlider label="Amount" unit={currency} value={loan1.amount} onValueChange={(v) => setLoan1({...loan1, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
                      <NumberInputWithSlider label="Interest Rate" unit="%" value={loan1.rate} onValueChange={(v) => setLoan1({...loan1, rate: v})} min={1} max={20} step={0.1} />
                      <NumberInputWithSlider label="Tenure" unit="Years" value={loan1.tenure} onValueChange={(v) => setLoan1({...loan1, tenure: v})} min={1} max={30} step={1} />
                 </CardContent>
@@ -303,7 +308,7 @@ function LoanComparison({ searchParams, updateUrl }: { searchParams: URLSearchPa
                     <CardTitle className="font-headline text-chart-2">Loan 2 Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <NumberInputWithSlider label="Amount" unit="USD" value={loan2.amount} onValueChange={(v) => setLoan2({...loan2, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, 'USD')} />
+                    <NumberInputWithSlider label="Amount" unit={currency} value={loan2.amount} onValueChange={(v) => setLoan2({...loan2, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
                     <NumberInputWithSlider label="Interest Rate" unit="%" value={loan2.rate} onValueChange={(v) => setLoan2({...loan2, rate: v})} min={1} max={20} step={0.1} />
                     <NumberInputWithSlider label="Tenure" unit="Years" value={loan2.tenure} onValueChange={(v) => setLoan2({...loan2, tenure: v})} min={1} max={30} step={1} />
                 </CardContent>
@@ -319,7 +324,7 @@ function LoanComparison({ searchParams, updateUrl }: { searchParams: URLSearchPa
                             Comparing the two loan offers side-by-side. 
                             {savings !== 0 && (
                                 <span className={cn("font-bold", savings > 0 ? "text-green-600" : "text-red-600")}>
-                                    {' '}Choosing Loan 2 could {savings > 0 ? 'save you' : 'cost you an extra'} {formatCurrency(Math.abs(savings), 'USD')}.
+                                    {' '}Choosing Loan 2 could {savings > 0 ? 'save you' : 'cost you an extra'} {formatCurrency(Math.abs(savings), currency)}.
                                 </span>
                             )}
                         </CardDescription>
@@ -329,10 +334,10 @@ function LoanComparison({ searchParams, updateUrl }: { searchParams: URLSearchPa
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={comparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => formatCurrency(Number(value), 'USD', 0)} />
+                                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => formatCurrency(Number(value), currency, 0)} />
                                     <RechartsTooltip
                                         cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
-                                        content={<ChartTooltipContent formatter={(value, name) => <div><span className="font-bold">{name === 'loan1' ? 'Loan 1:' : 'Loan 2:'}</span> {formatCurrency(Number(value), 'USD')}</div>} />}
+                                        content={<ChartTooltipContent formatter={(value, name) => <div><span className="font-bold">{name === 'loan1' ? 'Loan 1:' : 'Loan 2:'}</span> {formatCurrency(Number(value), currency)}</div>} />}
                                     />
                                     <Legend />
                                     <Bar dataKey="loan1" fill="var(--color-loan1)" radius={[4, 4, 0, 0]} />
@@ -347,7 +352,7 @@ function LoanComparison({ searchParams, updateUrl }: { searchParams: URLSearchPa
     );
 }
 
-function BalanceTransferAnalysis({ searchParams, updateUrl }: { searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function BalanceTransferAnalysis({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
     const [currentLoan, setCurrentLoan] = useState({
         principal: Number(searchParams.get('c_principal')) || 50000,
         rate: Number(searchParams.get('c_rate')) || 12,
@@ -381,7 +386,7 @@ function BalanceTransferAnalysis({ searchParams, updateUrl }: { searchParams: UR
                         <CardTitle className="font-headline">Current Loan</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <NumberInputWithSlider label="Outstanding Principal" unit="USD" value={currentLoan.principal} onValueChange={(v) => setCurrentLoan({...currentLoan, principal: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, 'USD')} />
+                        <NumberInputWithSlider label="Outstanding Principal" unit={currency} value={currentLoan.principal} onValueChange={(v) => setCurrentLoan({...currentLoan, principal: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
                         <NumberInputWithSlider label="Interest Rate" unit="%" value={currentLoan.rate} onValueChange={(v) => setCurrentLoan({...currentLoan, rate: v})} min={1} max={20} step={0.1} />
                         <NumberInputWithSlider label="Remaining Tenure" unit="Years" value={currentLoan.tenure} onValueChange={(v) => setCurrentLoan({...currentLoan, tenure: v})} min={1} max={30} step={1} />
                     </CardContent>
@@ -410,26 +415,26 @@ function BalanceTransferAnalysis({ searchParams, updateUrl }: { searchParams: UR
                             {totalSavings > 0 ? 'Total Potential Savings' : 'Net Loss'}
                         </Label>
                         <p className={cn("text-4xl font-bold", totalSavings > 0 ? 'text-green-600' : 'text-red-600')}>
-                            {formatCurrency(Math.abs(totalSavings), 'USD')}
+                            {formatCurrency(Math.abs(totalSavings), currency)}
                         </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-center">
                         <div className="p-4 bg-background rounded-lg">
                             <Label className="text-muted-foreground">Current Total Payment</Label>
-                            <p className="text-xl font-semibold">{formatCurrency(currentResult.totalPayment, 'USD')}</p>
+                            <p className="text-xl font-semibold">{formatCurrency(currentResult.totalPayment, currency)}</p>
                         </div>
                         <div className="p-4 bg-background rounded-lg">
                             <Label className="text-muted-foreground">New Total Payment (incl. fee)</Label>
-                            <p className="text-xl font-semibold">{formatCurrency(newResult.totalPayment, 'USD')}</p>
+                            <p className="text-xl font-semibold">{formatCurrency(newResult.totalPayment, currency)}</p>
                         </div>
                          <div className="p-4 bg-background rounded-lg">
                             <Label className="text-muted-foreground">Current EMI</Label>
-                            <p className="text-xl font-semibold">{formatCurrency(currentResult.emi, 'USD')}</p>
+                            <p className="text-xl font-semibold">{formatCurrency(currentResult.emi, currency)}</p>
                         </div>
                         <div className="p-4 bg-background rounded-lg">
                             <Label className="text-muted-foreground">New EMI</Label>
-                            <p className="text-xl font-semibold">{formatCurrency(newResult.emi, 'USD')}</p>
+                            <p className="text-xl font-semibold">{formatCurrency(newResult.emi, currency)}</p>
                         </div>
                     </div>
                 </CardContent>
@@ -438,7 +443,7 @@ function BalanceTransferAnalysis({ searchParams, updateUrl }: { searchParams: UR
     );
 }
 
-function PrepaymentImpactAnalysis({ searchParams, updateUrl }: { searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
     const [loan, setLoan] = useState({
         amount: Number(searchParams.get('p_amount')) || 200000,
         rate: Number(searchParams.get('p_rate')) || 9.5,
@@ -462,10 +467,10 @@ function PrepaymentImpactAnalysis({ searchParams, updateUrl }: { searchParams: U
                     <CardTitle className="font-headline">Loan & Prepayment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <NumberInputWithSlider label="Loan Amount" unit="USD" value={loan.amount} onValueChange={(v) => setLoan({...loan, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, 'USD')} />
+                    <NumberInputWithSlider label="Loan Amount" unit={currency} value={loan.amount} onValueChange={(v) => setLoan({...loan, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
                     <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => setLoan({...loan, rate: v})} min={1} max={20} step={0.1} />
                     <NumberInputWithSlider label="Loan Tenure" unit="Years" value={loan.tenure} onValueChange={(v) => setLoan({...loan, tenure: v})} min={1} max={30} step={1} />
-                    <NumberInputWithSlider label="Monthly Prepayment" unit="USD" value={loan.prepayment} onValueChange={(v) => setLoan({...loan, prepayment: v})} min={0} max={10000} step={100} format={(v) => formatCurrency(v, 'USD')} />
+                    <NumberInputWithSlider label="Monthly Prepayment" unit={currency} value={loan.prepayment} onValueChange={(v) => setLoan({...loan, prepayment: v})} min={0} max={10000} step={100} format={(v) => formatCurrency(v, currency)} />
                 </CardContent>
             </Card>
             <div className="space-y-8">
@@ -480,7 +485,7 @@ function PrepaymentImpactAnalysis({ searchParams, updateUrl }: { searchParams: U
                     <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div className="p-4 bg-green-100 dark:bg-green-900/50 rounded-lg">
                             <Label className="text-green-800 dark:text-green-200">Interest Saved</Label>
-                            <p className="text-2xl font-bold text-green-600">{formatCurrency(prepaymentResult.interestSaved, 'USD')}</p>
+                            <p className="text-2xl font-bold text-green-600">{formatCurrency(prepaymentResult.interestSaved, currency)}</p>
                         </div>
                         <div className="p-4 bg-background rounded-lg">
                             <Label className="text-muted-foreground">Tenure Reduced By</Label>
@@ -501,8 +506,8 @@ function PrepaymentImpactAnalysis({ searchParams, updateUrl }: { searchParams: U
                             <ResponsiveContainer width="100%" height={250}>
                                 <LineChart data={prepaymentResult.amortizationData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                                     <XAxis dataKey="year" name="Year" stroke="hsl(var(--muted-foreground))" />
-                                    <YAxis tickFormatter={(value) => formatCurrency(Number(value), 'USD', 0)} stroke="hsl(var(--muted-foreground))" />
-                                    <RechartsTooltip content={<ChartTooltipContent />} />
+                                    <YAxis tickFormatter={(value) => formatCurrency(Number(value), currency, 0)} stroke="hsl(var(--muted-foreground))" />
+                                    <RechartsTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value), currency)} />} />
                                     <Legend />
                                     <Line type="monotone" dataKey="withoutPrepayment" stroke="var(--color-withoutPrepayment)" strokeWidth={2} dot={false} />
                                     <Line type="monotone" dataKey="withPrepayment" stroke="var(--color-withPrepayment)" strokeWidth={2} dot={false} />
@@ -516,6 +521,7 @@ function PrepaymentImpactAnalysis({ searchParams, updateUrl }: { searchParams: U
     );
 }
 
+const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
 
 export function LoanLensApp({
   searchParams,
@@ -526,6 +532,7 @@ export function LoanLensApp({
   const pathname = usePathname();
   const currentSearchParams = useSearchParams();
   const defaultTab = searchParams?.tab || 'emi-calculator';
+  const [currency, setCurrency] = useState(() => currentSearchParams.get('currency') || 'USD');
 
   const updateUrl = useDebouncedCallback((params: Record<string, any>) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
@@ -541,13 +548,40 @@ export function LoanLensApp({
   
   const onTabChange = (tab: string) => {
     const newParams = new URLSearchParams();
+    // copy existing params
+    currentSearchParams.forEach((value, key) => {
+        if(key !== 'tab') {
+            newParams.set(key, value);
+        }
+    });
     newParams.set('tab', tab);
     router.replace(`${pathname}?${newParams.toString()}`);
+  }
+
+  const handleCurrencyChange = (newCurrency: string) => {
+      setCurrency(newCurrency);
+      updateUrl({ currency: newCurrency });
   }
 
   return (
     <TooltipProvider>
       <div className="container py-8">
+        <div className="flex justify-end mb-4">
+            <div className="w-40">
+                <Select value={currency} onValueChange={handleCurrencyChange}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {currencies.map((c) => (
+                        <SelectItem key={c} value={c}>
+                            {c}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
         <Tabs defaultValue={defaultTab as string} className="w-full" onValueChange={onTabChange}>
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
             <TabsTrigger value="emi-calculator">EMI Calculator</TabsTrigger>
@@ -557,21 +591,19 @@ export function LoanLensApp({
           </TabsList>
           
           <TabsContent value="emi-calculator">
-              <EmiCalculator searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'emi-calculator'})} />
+              <EmiCalculator currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'emi-calculator', currency})} />
           </TabsContent>
           <TabsContent value="loan-comparison">
-              <LoanComparison searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'loan-comparison'})} />
+              <LoanComparison currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'loan-comparison', currency})} />
           </TabsContent>
           <TabsContent value="balance-transfer">
-              <BalanceTransferAnalysis searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'balance-transfer'})} />
+              <BalanceTransferAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'balance-transfer', currency})} />
           </TabsContent>
           <TabsContent value="prepayment-impact">
-              <PrepaymentImpactAnalysis searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'prepayment-impact'})} />
+              <PrepaymentImpactAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'prepayment-impact', currency})} />
           </TabsContent>
         </Tabs>
       </div>
     </TooltipProvider>
   );
 }
-
-    
