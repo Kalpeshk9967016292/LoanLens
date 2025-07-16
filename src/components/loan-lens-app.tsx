@@ -188,7 +188,7 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
             value={rate}
             onValueChange={setRate}
             min={1}
-            max={20}
+            max={100}
             step={0.1}
           />
           <NumberInputWithSlider
@@ -344,7 +344,7 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
                         </CardHeader>
                         <CardContent className="space-y-6 flex-grow pt-4">
                              <NumberInputWithSlider label="Amount" unit={currency} value={loan.amount} onValueChange={(v) => handleLoanChange(loan.id, 'amount', v)} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
-                             <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => handleLoanChange(loan.id, 'rate', v)} min={1} max={20} step={0.1} />
+                             <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => handleLoanChange(loan.id, 'rate', v)} min={1} max={100} step={0.1} />
                              <NumberInputWithSlider label="Tenure" unit="Years" value={loan.tenure} onValueChange={(v) => handleLoanChange(loan.id, 'tenure', v)} min={1} max={30} step={1} />
                         </CardContent>
                     </Card>
@@ -425,7 +425,7 @@ function BalanceTransferAnalysis({ currency, searchParams, updateUrl }: { curren
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <NumberInputWithSlider label="Outstanding Principal" unit={currency} value={currentLoan.principal} onValueChange={(v) => setCurrentLoan({...currentLoan, principal: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
-                        <NumberInputWithSlider label="Interest Rate" unit="%" value={currentLoan.rate} onValueChange={(v) => setCurrentLoan({...currentLoan, rate: v})} min={1} max={20} step={0.1} />
+                        <NumberInputWithSlider label="Interest Rate" unit="%" value={currentLoan.rate} onValueChange={(v) => setCurrentLoan({...currentLoan, rate: v})} min={1} max={100} step={0.1} />
                         <NumberInputWithSlider label="Remaining Tenure" unit="Years" value={currentLoan.tenure} onValueChange={(v) => setCurrentLoan({...currentLoan, tenure: v})} min={1} max={30} step={1} />
                     </CardContent>
                 </Card>
@@ -434,7 +434,7 @@ function BalanceTransferAnalysis({ currency, searchParams, updateUrl }: { curren
                         <CardTitle className="font-headline">New Loan Offer</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <NumberInputWithSlider label="New Interest Rate" unit="%" value={newLoan.rate} onValueChange={(v) => setNewLoan({...newLoan, rate: v})} min={1} max={20} step={0.1} />
+                        <NumberInputWithSlider label="New Interest Rate" unit="%" value={newLoan.rate} onValueChange={(v) => setNewLoan({...newLoan, rate: v})} min={1} max={100} step={0.1} />
                         <NumberInputWithSlider label="New Loan Tenure" unit="Years" value={newLoan.tenure} onValueChange={(v) => setNewLoan({...newLoan, tenure: v})} min={1} max={30} step={1} />
                         <NumberInputWithSlider label="Processing Fee" unit="%" value={newLoan.fee} onValueChange={(v) => setNewLoan({...newLoan, fee: v})} min={0} max={5} step={0.1} />
                     </CardContent>
@@ -507,7 +507,7 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <NumberInputWithSlider label="Loan Amount" unit={currency} value={loan.amount} onValueChange={(v) => setLoan({...loan, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
-                    <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => setLoan({...loan, rate: v})} min={1} max={20} step={0.1} />
+                    <NumberInputWithSlider label="Interest Rate" unit="%" value={loan.rate} onValueChange={(v) => setLoan({...loan, rate: v})} min={1} max={100} step={0.1} />
                     <NumberInputWithSlider label="Loan Tenure" unit="Years" value={loan.tenure} onValueChange={(v) => setLoan({...loan, tenure: v})} min={1} max={30} step={1} />
                     <NumberInputWithSlider label="Monthly Prepayment" unit={currency} value={loan.prepayment} onValueChange={(v) => setLoan({...loan, prepayment: v})} min={0} max={10000} step={100} format={(v) => formatCurrency(v, currency)} />
                 </CardContent>
