@@ -68,8 +68,7 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
         callback(...args);
       }, delay);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [delay, callback]
+    [callback, delay]
   );
 
   return debouncedCallback;
@@ -249,7 +248,7 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
 }
 
 
-function LoanComparison({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function LoanComparison({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (newParams: Record<string, any>, clearLoanParams?: boolean) => void }) {
     const initialLoans = () => {
         const loansFromUrl = [];
         let i = 0;
@@ -283,7 +282,7 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
             params[`l${index}_rate`] = loan.rate;
             params[`l${index}_tenure`] = loan.tenure;
         });
-        debouncedUpdateUrl(params);
+        debouncedUpdateUrl(params, true);
     }, [loans, debouncedUpdateUrl]);
 
     const handleLoanChange = (id: number, field: string, value: string | number) => {
@@ -333,7 +332,7 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
                                 <Input
                                     value={loan.name}
                                     onChange={(e) => handleLoanChange(loan.id, 'name', e.target.value)}
-                                    className="text-lg font-semibold p-0 h-auto border-none focus-visible:ring-0"
+                                    className="text-lg font-semibold p-0 h-auto border-none focus-visible:ring-0 bg-transparent"
                                     style={{ color: `hsl(var(--chart-${(index % 5) + 1}))` }}
                                 />
                             </CardTitle>
@@ -504,7 +503,7 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
         <div className="grid lg:grid-cols-2 gap-8">
             <Card className="bg-card/50">
                 <CardHeader>
-                    <CardTitle className="font-headline">Loan & Prepayment</CardTitle>
+                    <CardTitle className="font-headline">Loan &amp; Prepayment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <NumberInputWithSlider label="Loan Amount" unit={currency} value={loan.amount} onValueChange={(v) => setLoan({...loan, amount: v})} min={1000} max={1000000} step={1000} format={(v) => formatCurrency(v, currency)} />
@@ -574,11 +573,10 @@ export function LoanLensApp({
   const defaultTab = currentSearchParams.get('tab') || 'emi-calculator';
   const [currency, setCurrency] = useState(() => currentSearchParams.get('currency') || 'USD');
 
-  const updateUrl = useCallback((params: Record<string, any>) => {
+  const updateUrl = useCallback((params: Record<string, any>, clearLoanParams = false) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
     
-    // Clear old loan params before setting new ones for comparison tab
-    if (params.tab === 'loan-comparison') {
+    if (clearLoanParams) {
         for (const key of Array.from(newParams.keys())) {
             if (key.startsWith('l') && (key.endsWith('_amount') || key.endsWith('_rate') || key.endsWith('_tenure') || key.endsWith('_name'))) {
                 newParams.delete(key);
@@ -649,7 +647,7 @@ export function LoanLensApp({
               <EmiCalculator currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'emi-calculator', currency})} />
           </TabsContent>
           <TabsContent value="loan-comparison">
-              <LoanComparison currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'loan-comparison', currency})} />
+              <LoanComparison currency={currency} searchParams={currentSearchParams} updateUrl={(params, clear) => updateUrl({...params, tab: 'loan-comparison', currency}, clear)} />
           </TabsContent>
           <TabsContent value="balance-transfer">
               <BalanceTransferAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'balance-transfer', currency})} />
@@ -663,3 +661,4 @@ export function LoanLensApp({
   );
 }
 
+    
