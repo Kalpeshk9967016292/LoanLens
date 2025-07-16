@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -47,22 +48,31 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 // A custom hook for debouncing
-const useDebouncedCallback = (callback: Function, delay: number) => {
-  const timeoutRef =
-    useState<NodeJS.Timeout | null>(null)[1];
+const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  return useCallback(
-    (...args: any[]) => {
-      if (timeoutRef) {
-        clearTimeout(timeoutRef as unknown as number);
+  useEffect(() => {
+    // Cleanup the timeout on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-      const newTimeout = setTimeout(() => {
+    };
+  }, []);
+
+  const debouncedCallback = useCallback(
+    (...args: any[]) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
         callback(...args);
       }, delay);
-      (timeoutRef as unknown as (timeout: NodeJS.Timeout | null) => void)(newTimeout);
     },
-    [callback, delay, timeoutRef]
+    [callback, delay]
   );
+
+  return debouncedCallback;
 };
 
 
@@ -563,3 +573,5 @@ export function LoanLensApp({
     </TooltipProvider>
   );
 }
+
+    
