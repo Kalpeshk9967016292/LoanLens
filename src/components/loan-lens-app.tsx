@@ -45,6 +45,7 @@ import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ScrollArea } from './ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 const chartConfig = {
   principal: { label: 'Principal', color: 'hsl(var(--primary))' },
@@ -58,7 +59,7 @@ const chartConfig = {
 const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const debouncedCallback = useCallback(
+  return useCallback(
     (...args: any[]) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -69,16 +70,6 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
     },
     [callback, delay]
   );
-    
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return debouncedCallback;
 };
 
 const NumberInputWithSlider = ({
@@ -198,6 +189,18 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
   const amortizationSchedule = useMemo(() => {
     return generateAmortizationSchedule(amount, rate, tenure, startDate);
   }, [amount, rate, tenure, startDate]);
+  
+  const groupedAmortization = useMemo(() => {
+    return amortizationSchedule.reduce((acc, item) => {
+        const year = item.month.split(' ')[1];
+        if (!acc[year]) {
+            acc[year] = [];
+        }
+        acc[year].push(item);
+        return acc;
+    }, {});
+  }, [amortizationSchedule]);
+
 
   const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
 
@@ -298,30 +301,37 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
             <CardDescription>A detailed breakdown of your monthly payments over the loan tenure.</CardDescription>
         </CardHeader>
         <CardContent>
-            <ScrollArea className="h-96">
-                <Table>
-                    <TableHeader className='sticky top-0 bg-background'>
-                        <TableRow>
-                            <TableHead className="w-[120px]">Month-Year</TableHead>
-                            <TableHead className="text-right">EMI</TableHead>
-                            <TableHead className="text-right">Interest Paid</TableHead>
-                            <TableHead className="text-right">Principal Paid</TableHead>
-                            <TableHead className="text-right">Outstanding Balance</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {amortizationSchedule.map((row) => (
-                            <TableRow key={row.month}>
-                                <TableCell className="font-medium">{row.month}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.emi, currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.interestPaid, currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.principalPaid, currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.balance, currency)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </ScrollArea>
+            <Accordion type="multiple" className="w-full">
+                {Object.entries(groupedAmortization).map(([year, months]) => (
+                    <AccordionItem value={year} key={year}>
+                        <AccordionTrigger>Year {year}</AccordionTrigger>
+                        <AccordionContent>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[120px]">Month</TableHead>
+                                        <TableHead className="text-right">EMI</TableHead>
+                                        <TableHead className="text-right">Interest Paid</TableHead>
+                                        <TableHead className="text-right">Principal Paid</TableHead>
+                                        <TableHead className="text-right">Outstanding Balance</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {(months as any[]).map((row) => (
+                                        <TableRow key={row.month}>
+                                            <TableCell className="font-medium">{row.month.split(' ')[0]}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(row.emi, currency)}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(row.interestPaid, currency)}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(row.principalPaid, currency)}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(row.balance, currency)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
         </CardContent>
     </Card>
     )}
