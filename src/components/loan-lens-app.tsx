@@ -109,13 +109,14 @@ const NumberInputWithSlider = ({
         {format ? format(value) : value} {unit}
       </span>
     </Label>
-    <div className="flex items-center space-x-4">
+    <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
       <Slider
         value={[value]}
         onValueChange={([v]) => onValueChange(v)}
         min={min}
         max={max}
         step={step}
+        className="flex-1"
       />
       <Input
         type="number"
@@ -124,7 +125,7 @@ const NumberInputWithSlider = ({
         min={min}
         max={max}
         step={step}
-        className="w-28"
+        className="w-full sm:w-28"
       />
     </div>
   </div>
@@ -755,7 +756,7 @@ export function LoanLensApp() {
             </div>
         </div>
         <Tabs defaultValue={defaultTab as string} className="w-full" onValueChange={onTabChange}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8 h-auto flex-wrap">
             <TabsTrigger value="emi-calculator">EMI Calculator</TabsTrigger>
             <TabsTrigger value="loan-comparison">Loan Comparison</TabsTrigger>
             <TabsTrigger value="balance-transfer">Balance Transfer</TabsTrigger>
@@ -779,3 +780,5 @@ export function LoanLensApp() {
     </TooltipProvider>
   );
 }
+
+    
