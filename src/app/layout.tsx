@@ -7,8 +7,23 @@ import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
-  description: 'Smart loan analysis and comparison tool. Calculate EMI, compare loans, analyze balance transfers, and see the impact of prepayments. Make informed financial decisions with LoanLens.',
-  keywords: ['loan calculator', 'emi calculator', 'loan comparison', 'interest rate', 'amortization schedule', 'loan prepayment', 'balance transfer', 'financial tools', 'personal finance', 'iamtiksha'],
+  description: 'Smart loan analysis and comparison tool. Calculate EMI, compare loans, analyze balance transfers, and see the impact of prepayments. Make informed financial decisions with LoanLens for home loans, personal loans, car loans, and more.',
+  keywords: [
+    'loan calculator', 
+    'emi calculator', 
+    'home loan emi calculator',
+    'personal loan emi calculator',
+    'car loan emi calculator',
+    'bike loan calculator',
+    'loan comparison', 
+    'interest rate', 
+    'amortization schedule', 
+    'loan prepayment', 
+    'balance transfer', 
+    'financial tools', 
+    'personal finance', 
+    'iamtiksha'
+  ],
   openGraph: {
     title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
     description: 'A smart financial tool to analyze and compare loans with ease.',
