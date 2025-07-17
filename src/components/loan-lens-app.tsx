@@ -675,11 +675,7 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
 
 const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
 
-export function LoanLensApp({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export function LoanLensApp() {
   const router = useRouter();
   const pathname = usePathname();
   const currentSearchParams = useSearchParams();
