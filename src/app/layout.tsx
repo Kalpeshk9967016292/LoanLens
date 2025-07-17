@@ -55,7 +55,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/loanlenslogo.png" sizes="any" />
+        <link rel="icon" href="https://www.iamtiksha.com/lifetools/emi-calculator/loanlenselogo.png" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
