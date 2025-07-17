@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
     description: 'A smart financial tool to analyze and compare loans with ease.',
-    url: 'https://loanlens.app', // Replace with your actual domain
+    url: 'https://www.iamtiksha.com/lifetools/emi-calculator',
     siteName: 'LoanLens',
     images: [
       {
-        url: '/og-image.png', // Make sure to create this image and place it in the public folder
+        url: 'https://www.iamtiksha.com/lifetools/emi-calculator/og-image.png',
         width: 1200,
         height: 630,
       },
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
     description: 'A smart financial tool to analyze and compare loans with ease.',
-    images: ['/twitter-image.png'], // Make sure to create this image and place it in the public folder
+    images: ['https://www.iamtiksha.com/lifetools/emi-calculator/twitter-image.png'],
   },
 };
 
