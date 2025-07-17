@@ -22,12 +22,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Button } from './ui/button';
-import { CalendarIcon, Check, Copy, Info, PlusCircle, Trash2 } from 'lucide-react';
+import { CalendarIcon, Check, Copy, Info, PlusCircle, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   calculateEMI,
   calculateTotalInterestAndPayment,
   calculatePrepayment,
   generateAmortizationSchedule,
+  YearlyAmortization
 } from '@/lib/loan-utils';
 import { cn, formatCurrency } from '@/lib/utils';
 import {
@@ -173,6 +174,58 @@ function DatePicker({ date, setDate, label }: { date: Date, setDate: (date: Date
   );
 }
 
+const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortization[], currency: string }) => {
+    const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
+
+    const toggleYear = (year: string) => {
+        setExpandedYears(prev => ({...prev, [year]: !prev[year]}));
+    }
+
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead className="w-1/6">Year</TableHead>
+                    <TableHead className="text-right">Principal</TableHead>
+                    <TableHead className="text-right">Interest</TableHead>
+                    <TableHead className="text-right">Total Payment</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right w-1/6">Loan Paid To Date</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {schedule.map(yearData => (
+                    <>
+                        <TableRow key={yearData.year} onClick={() => toggleYear(yearData.year)} className="cursor-pointer bg-muted/20 hover:bg-muted/50">
+                            <TableCell className="font-medium">
+                                <div className="flex items-center">
+                                    {expandedYears[yearData.year] ? <ChevronDown className="h-4 w-4 mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
+                                    {yearData.year}
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(yearData.principalPaid, currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(yearData.interestPaid, currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(yearData.totalPayment, currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(yearData.balance, currency)}</TableCell>
+                            <TableCell className="text-right">{yearData.loanPaidToDate.toFixed(2)}%</TableCell>
+                        </TableRow>
+                        {expandedYears[yearData.year] && yearData.months.map(monthData => (
+                             <TableRow key={`${yearData.year}-${monthData.month}`} className="bg-background hover:bg-muted/30">
+                                <TableCell className="pl-12 text-sm text-muted-foreground">{monthData.month}</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrency(monthData.principalPaid, currency)}</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrency(monthData.interestPaid, currency)}</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrency(monthData.emi, currency)}</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrency(monthData.balance, currency)}</TableCell>
+                                <TableCell className="text-right text-sm">{monthData.loanPaidToDate.toFixed(2)}%</TableCell>
+                            </TableRow>
+                        ))}
+                    </>
+                ))}
+            </TableBody>
+        </Table>
+    )
+}
+
 function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
   const [amount, setAmount] = useState(() => Number(searchParams.get('amount')) || 100000);
   const [rate, setRate] = useState(() => Number(searchParams.get('rate')) || 8.5);
@@ -189,18 +242,6 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
   const amortizationSchedule = useMemo(() => {
     return generateAmortizationSchedule(amount, rate, tenure, startDate);
   }, [amount, rate, tenure, startDate]);
-  
-  const groupedAmortization = useMemo(() => {
-    return amortizationSchedule.reduce((acc, item) => {
-        const year = item.month.split(' ')[1];
-        if (!acc[year]) {
-            acc[year] = [];
-        }
-        acc[year].push(item);
-        return acc;
-    }, {});
-  }, [amortizationSchedule]);
-
 
   const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
 
@@ -298,40 +339,10 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
     <Card>
         <CardHeader>
             <CardTitle className="font-headline">Amortization Schedule</CardTitle>
-            <CardDescription>A detailed breakdown of your monthly payments over the loan tenure.</CardDescription>
+            <CardDescription>A detailed breakdown of your payments over the loan tenure.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Accordion type="multiple" className="w-full">
-                {Object.entries(groupedAmortization).map(([year, months]) => (
-                    <AccordionItem value={year} key={year}>
-                        <AccordionTrigger>Year {year}</AccordionTrigger>
-                        <AccordionContent>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[120px]">Month</TableHead>
-                                        <TableHead className="text-right">EMI</TableHead>
-                                        <TableHead className="text-right">Interest Paid</TableHead>
-                                        <TableHead className="text-right">Principal Paid</TableHead>
-                                        <TableHead className="text-right">Outstanding Balance</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {(months as any[]).map((row) => (
-                                        <TableRow key={row.month}>
-                                            <TableCell className="font-medium">{row.month.split(' ')[0]}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(row.emi, currency)}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(row.interestPaid, currency)}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(row.principalPaid, currency)}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(row.balance, currency)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
-            </Accordion>
+            <AmortizationTable schedule={amortizationSchedule} currency={currency} />
         </CardContent>
     </Card>
     )}
@@ -642,7 +653,7 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
                                     <Legend />
                                     <Line type="monotone" dataKey="withoutPrepayment" stroke="var(--color-withoutPrepayment)" strokeWidth={2} dot={false} />
                                     <Line type="monotone" dataKey="withPrepayment" stroke="var(--color-withPrepayment)" strokeWidth={2} dot={false} />
-                                </LineChart>
+                                 </LineChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </CardContent>

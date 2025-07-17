@@ -25,7 +25,31 @@ export const calculateTotalInterestAndPayment = (principal: number, annualRate: 
     };
 };
 
-export const generateAmortizationSchedule = (principal: number, annualRate: number, tenureYears: number, startDate: Date) => {
+export interface MonthlyAmortization {
+    month: string;
+    emi: number;
+    interestPaid: number;
+    principalPaid: number;
+    balance: number;
+    loanPaidToDate: number;
+}
+
+export interface YearlyAmortization {
+    year: string;
+    principalPaid: number;
+    interestPaid: number;
+    totalPayment: number;
+    balance: number;
+    loanPaidToDate: number;
+    months: MonthlyAmortization[];
+}
+
+export const generateAmortizationSchedule = (
+    principal: number,
+    annualRate: number,
+    tenureYears: number,
+    startDate: Date
+): YearlyAmortization[] => {
     if (principal <= 0 || annualRate <= 0 || tenureYears <= 0) {
         return [];
     }
@@ -33,34 +57,59 @@ export const generateAmortizationSchedule = (principal: number, annualRate: numb
     const monthlyRate = annualRate / 12 / 100;
     const tenureMonths = tenureYears * 12;
     const emi = calculateEMI(principal, annualRate, tenureYears);
-    
+
     if (emi === 0 || !isFinite(emi)) {
         return [];
     }
-    
-    const schedule = [];
+
+    const schedule: Record<string, YearlyAmortization> = {};
     let balance = principal;
 
     for (let i = 0; i < tenureMonths; i++) {
+        const currentDate = addMonths(startDate, i);
+        const year = format(currentDate, 'yyyy');
+        const month = format(currentDate, 'MMM');
+
+        if (!schedule[year]) {
+            schedule[year] = {
+                year: year,
+                principalPaid: 0,
+                interestPaid: 0,
+                totalPayment: 0,
+                balance: 0,
+                loanPaidToDate: 0,
+                months: [],
+            };
+        }
+        
         const interestPaid = balance * monthlyRate;
         const principalPaid = emi - interestPaid;
         balance -= principalPaid;
 
-        // Ensure balance doesn't go negative on the last payment due to rounding
-        if (i === tenureMonths - 1 && balance < 1 && balance > -1) {
+        if (i === tenureMonths - 1 && Math.abs(balance) < 1) {
             balance = 0;
         }
 
-        schedule.push({
-            month: format(addMonths(startDate, i), 'MMM yyyy'),
+        const loanPaidToDate = ((principal - balance) / principal) * 100;
+
+        const monthData: MonthlyAmortization = {
+            month: month,
             emi: emi,
             interestPaid: interestPaid,
             principalPaid: principalPaid,
             balance: balance,
-        });
+            loanPaidToDate: loanPaidToDate,
+        };
+
+        schedule[year].months.push(monthData);
+        schedule[year].principalPaid += principalPaid;
+        schedule[year].interestPaid += interestPaid;
+        schedule[year].totalPayment += emi;
+        schedule[year].balance = balance;
+        schedule[year].loanPaidToDate = loanPaidToDate;
     }
 
-    return schedule;
+    return Object.values(schedule);
 };
 
 
