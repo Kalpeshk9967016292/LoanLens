@@ -6,11 +6,11 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'LoanLens | Smart Loan & EMI Calculator',
+  title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
   description: 'Smart loan analysis and comparison tool. Calculate EMI, compare loans, analyze balance transfers, and see the impact of prepayments. Make informed financial decisions with LoanLens.',
-  keywords: ['loan calculator', 'emi calculator', 'loan comparison', 'interest rate', 'amortization schedule', 'loan prepayment', 'balance transfer', 'financial tools', 'personal finance'],
+  keywords: ['loan calculator', 'emi calculator', 'loan comparison', 'interest rate', 'amortization schedule', 'loan prepayment', 'balance transfer', 'financial tools', 'personal finance', 'iamtiksha'],
   openGraph: {
-    title: 'LoanLens | Smart Loan & EMI Calculator',
+    title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
     description: 'A smart financial tool to analyze and compare loans with ease.',
     url: 'https://loanlens.app', // Replace with your actual domain
     siteName: 'LoanLens',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LoanLens | Smart Loan & EMI Calculator',
+    title: 'I am Tiksha | LoanLens | Smart Loan & EMI Calculator',
     description: 'A smart financial tool to analyze and compare loans with ease.',
     images: ['/twitter-image.png'], // Make sure to create this image and place it in the public folder
   },
