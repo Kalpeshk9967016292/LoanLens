@@ -60,7 +60,7 @@ const chartConfig = {
 const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  return useCallback(
+  const debouncedCallback = useCallback(
     (...args: any[]) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -71,6 +71,16 @@ const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number)
     },
     [callback, delay]
   );
+  
+  useEffect(() => {
+    return () => {
+      if(timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return debouncedCallback;
 };
 
 const NumberInputWithSlider = ({
@@ -195,8 +205,8 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
             </TableHeader>
             <TableBody>
                 {schedule.map(yearData => (
-                    <>
-                        <TableRow key={yearData.year} onClick={() => toggleYear(yearData.year)} className="cursor-pointer bg-muted/20 hover:bg-muted/50">
+                    <React.Fragment key={yearData.year}>
+                        <TableRow onClick={() => toggleYear(yearData.year)} className="cursor-pointer bg-muted/20 hover:bg-muted/50">
                             <TableCell className="font-medium">
                                 <div className="flex items-center">
                                     {expandedYears[yearData.year] ? <ChevronDown className="h-4 w-4 mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
@@ -219,7 +229,7 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
                                 <TableCell className="text-right text-sm">{monthData.loanPaidToDate.toFixed(2)}%</TableCell>
                             </TableRow>
                         ))}
-                    </>
+                    </React.Fragment>
                 ))}
             </TableBody>
         </Table>
