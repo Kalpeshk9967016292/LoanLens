@@ -84,6 +84,12 @@ function SeoContent() {
 
                 <h3 className="text-xl font-semibold mt-6 mb-2 font-headline">Prepayment Impact Calculator</h3>
                 <p>Paying more than your required EMI can significantly reduce your loan tenure and the total interest you pay. The <a href="/?tab=prepayment-impact">Prepayment Impact Calculator</a> demonstrates the power of making extra payments. See exactly how much interest you can save and how many months or years you can shave off your loan term by adding a small extra amount to your monthly payments. This tool is perfect for planning your path to becoming debt-free sooner.</p>
+
+                <h3 className="text-xl font-semibold mt-6 mb-2 font-headline">Debt Consolidation Strategy</h3>
+                <p>If you're juggling multiple loans—such as credit card debt, a personal loan, and a car loan—managing them can be overwhelming. Debt consolidation is a financial strategy where you take out a new, single loan to pay off all your other outstanding debts. Typically, this new loan has a lower interest rate than the combined rates of your previous debts. Our tools can help you analyze if a new consolidation loan is the right move. Use the Loan Comparison tool to compare a new consolidation loan offer against your existing combined payments to see potential savings and simplify your monthly finances.</p>
+                
+                <h3 className="text-xl font-semibold mt-6 mb-2 font-headline">Your Partner in Financial Planning</h3>
+                <p>LoanLens is more than just a calculator; it's a partner in your financial journey. By providing clear, accurate, and instant calculations, we help you understand the long-term impact of your financial decisions. Whether you are a first-time borrower or a seasoned investor, our tools provide the clarity needed to navigate the complexities of loans, interest, and repayments. Take control of your financial future today by exploring the full capabilities of our loan management suite.</p>
             </div>
         </section>
     );
@@ -99,7 +105,7 @@ export default function RootLayout({
       <head>
         <title>LoanLens: Smart EMI & Loan Calculator for Comparison, Prepayment & Transfer</title>
         <meta name="description" content="Calculate EMI, compare loans, analyze balance transfers, and visualize prepayment impact. LoanLens is a free, smart financial calculator for all your loan management needs." />
-        <meta name="keywords" content="loan calculator, emi calculator, home loan emi calculator, personal loan emi calculator, car loan emi calculator, bike loan calculator, loan comparison, interest rate, amortization schedule, loan prepayment, balance transfer, financial tools, personal finance, iamtiksha" />
+        <meta name="keywords" content="loan calculator, emi calculator, home loan emi calculator, personal loan emi calculator, car loan emi calculator, bike loan calculator, loan comparison, interest rate, amortization schedule, loan prepayment, balance transfer, debt consolidation, financial tools, personal finance, iamtiksha" />
         <link rel="icon" href="https://www.iamtiksha.com/lifetools/emi-calculator/loanlenslogo.png" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
