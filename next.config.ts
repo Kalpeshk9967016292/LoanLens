@@ -3,7 +3,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'export',
-  // basePath: '/lifetools/emi-calculator',
+  basePath: '/lifetools/emi-calculator',
   typescript: {
     ignoreBuildErrors: true,
   },
