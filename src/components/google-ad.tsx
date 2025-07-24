@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 declare global {
     interface Window {
@@ -17,7 +17,13 @@ type GoogleAdProps = {
 };
 
 export function GoogleAd({ adSlot, adClient, className, style = { display: 'block' } }: GoogleAdProps) {
+    const insRef = useRef<HTMLModElement>(null);
+
     useEffect(() => {
+        if (insRef.current && insRef.current.dataset.adStatus === 'filled') {
+            return;
+        }
+
         try {
             (window.adsbygoogle = window.adsbygoogle || []).push({});
         } catch (err) {
@@ -37,8 +43,9 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
     }
 
     return (
-        <div className={className}>
+        <div className={className} key={adSlot}>
             <ins
+                ref={insRef}
                 className="adsbygoogle"
                 style={style}
                 data-ad-client={adClient}
