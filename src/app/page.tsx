@@ -22,7 +22,7 @@ function LoanLensPage() {
         </p>
       </div>
       <div className="mb-8">
-         <GoogleAd key={tab} adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
+         <GoogleAd key={tab} adClient="ca-pub-4648414963251970" adSlot="7751251444" />
       </div>
       <LoanLensApp key={`${tab}-${currency}`} currency={currency} />
     </>
