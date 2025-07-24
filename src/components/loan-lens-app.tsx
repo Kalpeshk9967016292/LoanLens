@@ -58,32 +58,6 @@ const chartConfig = {
   withoutPrepayment: { label: 'Without Prepayment', color: 'hsl(var(--accent))' },
 } satisfies ChartConfig;
 
-const useDebouncedCallback = (callback: (...args: any[]) => void, delay: number) => {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const debouncedCallback = useCallback(
-    (...args: any[]) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => {
-        callback(...args);
-      }, delay);
-    },
-    [callback, delay]
-  );
-  
-  useEffect(() => {
-    return () => {
-      if(timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return debouncedCallback;
-};
-
 const NumberInputWithSlider = ({
   label,
   unit,
@@ -138,7 +112,11 @@ function ShareButton() {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(window.location.href).then(() => {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('currency');
+        const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+
+        navigator.clipboard.writeText(shareUrl).then(() => {
             setCopied(true);
             toast({
                 title: "Link Copied!",
@@ -240,14 +218,11 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
     )
 }
 
-function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
-  const [amount, setAmount] = useState(() => Number(searchParams.get('amount')) || 100000);
-  const [rate, setRate] = useState(() => Number(searchParams.get('rate')) || 8.5);
-  const [tenure, setTenure] = useState(() => Number(searchParams.get('tenure')) || 5);
-  const [startDate, setStartDate] = useState(() => {
-      const dateStr = searchParams.get('startDate');
-      return dateStr ? new Date(dateStr) : new Date();
-  });
+function EmiCalculator({ currency }: { currency: string }) {
+  const [amount, setAmount] = useState(100000);
+  const [rate, setRate] = useState(8.5);
+  const [tenure, setTenure] = useState(5);
+  const [startDate, setStartDate] = useState(new Date());
 
   const { emi, totalInterest, totalPayment } = useMemo(() => {
     return calculateTotalInterestAndPayment(amount, rate, tenure);
@@ -256,12 +231,6 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
   const amortizationSchedule = useMemo(() => {
     return generateAmortizationSchedule(amount, rate, tenure, startDate);
   }, [amount, rate, tenure, startDate]);
-
-  const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
-
-  useEffect(() => {
-    debouncedUpdateUrl({ amount, rate, tenure, startDate: startDate.toISOString() });
-  }, [amount, rate, tenure, startDate, debouncedUpdateUrl]);
   
   const pieData = [
     { name: 'Principal Amount', value: amount, fill: 'var(--color-principal)' },
@@ -365,42 +334,11 @@ function EmiCalculator({ currency, searchParams, updateUrl }: { currency: string
 }
 
 
-function LoanComparison({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (newParams: Record<string, any>, clearLoanParams?: boolean) => void }) {
-    const initialLoans = () => {
-        const loansFromUrl = [];
-        let i = 0;
-        while (searchParams.has(`l${i}_amount`)) {
-            loansFromUrl.push({
-                id: Date.now() + i,
-                name: searchParams.get(`l${i}_name`) || `Loan ${i + 1}`,
-                amount: Number(searchParams.get(`l${i}_amount`)) || 100000,
-                rate: Number(searchParams.get(`l${i}_rate`)) || 8.5,
-                tenure: Number(searchParams.get(`l${i}_tenure`)) || 10,
-            });
-            i++;
-        }
-        if (loansFromUrl.length === 0) {
-            return [
-                { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
-                { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
-            ];
-        }
-        return loansFromUrl;
-    };
-
-    const [loans, setLoans] = useState(initialLoans);
-    const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
-
-    useEffect(() => {
-        const params = {};
-        loans.forEach((loan, index) => {
-            params[`l${index}_name`] = loan.name;
-            params[`l${index}_amount`] = loan.amount;
-            params[`l${index}_rate`] = loan.rate;
-            params[`l${index}_tenure`] = loan.tenure;
-        });
-        debouncedUpdateUrl(params, true);
-    }, [loans, debouncedUpdateUrl]);
+function LoanComparison({ currency }: { currency: string }) {
+    const [loans, setLoans] = useState([
+        { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
+        { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
+    ]);
 
     const handleLoanChange = (id: number, field: string, value: string | number) => {
         setLoans(loans.map(loan => loan.id === id ? { ...loan, [field]: value } : loan));
@@ -506,26 +444,18 @@ function LoanComparison({ currency, searchParams, updateUrl }: { currency: strin
     );
 }
 
-function BalanceTransferAnalysis({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function BalanceTransferAnalysis({ currency }: { currency: string }) {
     const [currentLoan, setCurrentLoan] = useState({
-        principal: Number(searchParams.get('c_principal')) || 50000,
-        rate: Number(searchParams.get('c_rate')) || 12,
-        tenure: Number(searchParams.get('c_tenure')) || 3,
+        principal: 50000,
+        rate: 12,
+        tenure: 3,
     });
     const [newLoan, setNewLoan] = useState({
-        rate: Number(searchParams.get('n_rate')) || 9,
-        tenure: Number(searchParams.get('n_tenure')) || 3,
-        fee: Number(searchParams.get('n_fee')) || 1,
+        rate: 9,
+        tenure: 3,
+        fee: 1,
     });
-    const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
     
-    useEffect(() => {
-        debouncedUpdateUrl({
-            c_principal: currentLoan.principal, c_rate: currentLoan.rate, c_tenure: currentLoan.tenure,
-            n_rate: newLoan.rate, n_tenure: newLoan.tenure, n_fee: newLoan.fee,
-        });
-    }, [currentLoan, newLoan, debouncedUpdateUrl]);
-
     const currentResult = calculateTotalInterestAndPayment(currentLoan.principal, currentLoan.rate, currentLoan.tenure);
     const newFeeAmount = (currentLoan.principal * newLoan.fee) / 100;
     const newPrincipal = currentLoan.principal + newFeeAmount;
@@ -598,21 +528,14 @@ function BalanceTransferAnalysis({ currency, searchParams, updateUrl }: { curren
     );
 }
 
-function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { currency: string, searchParams: URLSearchParams, updateUrl: (params: Record<string, any>) => void }) {
+function PrepaymentImpactAnalysis({ currency }: { currency: string }) {
     const [loan, setLoan] = useState({
-        amount: Number(searchParams.get('p_amount')) || 200000,
-        rate: Number(searchParams.get('p_rate')) || 9.5,
-        tenure: Number(searchParams.get('p_tenure')) || 20,
-        prepayment: Number(searchParams.get('p_prepayment')) || 1000,
+        amount: 200000,
+        rate: 9.5,
+        tenure: 20,
+        prepayment: 1000,
     });
-    const debouncedUpdateUrl = useDebouncedCallback(updateUrl, 500);
-
-    useEffect(() => {
-        debouncedUpdateUrl({
-            p_amount: loan.amount, p_rate: loan.rate, p_tenure: loan.tenure, p_prepayment: loan.prepayment
-        });
-    }, [loan, debouncedUpdateUrl]);
-
+    
     const originalResult = calculateTotalInterestAndPayment(loan.amount, loan.rate, loan.tenure);
     const prepaymentResult = calculatePrepayment(loan.amount, loan.rate, loan.tenure, loan.prepayment);
 
@@ -680,41 +603,13 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
 export function LoanLensApp({ currency }: { currency: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const currentSearchParams = useSearchParams();
-  const defaultTab = currentSearchParams.get('tab') || 'emi-calculator';
-  
-  const updateUrl = useCallback((params: Record<string, any>, clearLoanParams = false) => {
-    const newParams = new URLSearchParams(currentSearchParams.toString());
-    
-    if (clearLoanParams) {
-        for (const key of Array.from(newParams.keys())) {
-            if (key.startsWith('l') && (key.endsWith('_amount') || key.endsWith('_rate') || key.endsWith('_tenure') || key.endsWith('_name'))) {
-                newParams.delete(key);
-            }
-        }
-    }
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        newParams.set(key, String(value));
-      } else {
-        newParams.delete(key);
-      }
-    });
-    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
-  }, [currentSearchParams, pathname, router]);
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'emi-calculator';
   
   const onTabChange = (tab: string) => {
     const newParams = new URLSearchParams(window.location.search);
-    const paramsToKeep = ['currency'];
-    const currentParams = new URLSearchParams(window.location.search);
-    const newSearch = new URLSearchParams();
-    
-    paramsToKeep.forEach(p => {
-        if(currentParams.has(p)) newSearch.set(p, currentParams.get(p)!);
-    });
-    newSearch.set('tab', tab);
-    router.replace(`${pathname}?${newSearch.toString()}`, { scroll: false });
+    newParams.set('tab', tab);
+    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
   }
 
   return (
@@ -728,16 +623,16 @@ export function LoanLensApp({ currency }: { currency: string }) {
         </TabsList>
         
         <TabsContent value="emi-calculator">
-            <EmiCalculator currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'emi-calculator'})} />
+            <EmiCalculator currency={currency} />
         </TabsContent>
         <TabsContent value="loan-comparison">
-            <LoanComparison currency={currency} searchParams={currentSearchParams} updateUrl={(params, clear) => updateUrl({...params, tab: 'loan-comparison'}, clear)} />
+            <LoanComparison currency={currency} />
         </TabsContent>
         <TabsContent value="balance-transfer">
-            <BalanceTransferAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'balance-transfer'})} />
+            <BalanceTransferAnalysis currency={currency} />
         </TabsContent>
         <TabsContent value="prepayment-impact">
-            <PrepaymentImpactAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'prepayment-impact'})} />
+            <PrepaymentImpactAnalysis currency={currency} />
         </TabsContent>
       </Tabs>
     </TooltipProvider>
