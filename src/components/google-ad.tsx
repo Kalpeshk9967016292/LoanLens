@@ -22,7 +22,7 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
         } catch (err) {
             console.error(err);
         }
-    }, [adSlot]); // Re-run when adSlot changes
+    }, []); // Empty dependency array ensures this runs only once on mount
 
     if (!adClient || !adSlot || adClient.startsWith("ca-pub-YOUR") || adSlot.startsWith("YOUR_AD")) {
         return (
@@ -38,7 +38,7 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
     return (
         <div className={className}>
             <ins
-                key={adSlot}
+                key={adSlot} // Keep key here to remount if slot changes, which is good practice.
                 className="adsbygoogle"
                 style={style}
                 data-ad-client={adClient}
