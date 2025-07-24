@@ -36,8 +36,9 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
     }
 
     return (
-        <div key={adSlot} className={className}>
+        <div className={className}>
             <ins
+                key={adSlot}
                 className="adsbygoogle"
                 style={style}
                 data-ad-client={adClient}
