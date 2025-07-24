@@ -396,7 +396,7 @@ function LoanComparison({ currency }: { currency: string }) {
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {loans.map((loan, index) => (
                     <Card key={loan.id} className="bg-card/50 flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -496,7 +496,7 @@ function BalanceTransferAnalysis({ currency }: { currency: string }) {
     };
 
     return (
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-8">
             <div className='space-y-8'>
                 <Card className="bg-card/50">
                     <CardHeader>
