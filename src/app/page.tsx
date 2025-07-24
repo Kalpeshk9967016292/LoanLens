@@ -17,9 +17,6 @@ function LoanLensPage() {
         <GoogleAd key={`${tab}-top`} adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
       </div>
       <LoanLensApp currency={currency} />
-      <div className="mt-8">
-        <GoogleAd key={`${tab}-bottom`} adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_2" />
-      </div>
     </>
   );
 }
