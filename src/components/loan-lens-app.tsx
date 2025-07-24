@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -216,14 +215,10 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
 }
 
 function EmiCalculator({ currency }: { currency: string }) {
-  const searchParams = useSearchParams();
-  const [amount, setAmount] = useState(() => Number(searchParams.get('amount')) || 100000);
-  const [rate, setRate] = useState(() => Number(searchParams.get('rate')) || 8.5);
-  const [tenure, setTenure] = useState(() => Number(searchParams.get('tenure')) || 5);
-  const [startDate, setStartDate] = useState(() => {
-      const dateStr = searchParams.get('startDate');
-      return dateStr ? new Date(dateStr) : new Date();
-  });
+  const [amount, setAmount] = useState(100000);
+  const [rate, setRate] = useState(8.5);
+  const [tenure, setTenure] = useState(5);
+  const [startDate, setStartDate] = useState(new Date());
 
   const { emi, totalInterest, totalPayment } = useMemo(() => {
     return calculateTotalInterestAndPayment(amount, rate, tenure);
@@ -347,21 +342,10 @@ function EmiCalculator({ currency }: { currency: string }) {
 
 
 function LoanComparison({ currency }: { currency: string }) {
-    const searchParams = useSearchParams();
-    const [loans, setLoans] = useState(() => {
-        const loansParam = searchParams.get('loans');
-        if (loansParam) {
-            try {
-                return JSON.parse(loansParam);
-            } catch (e) {
-                // fall back to default
-            }
-        }
-        return [
-            { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
-            { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
-        ];
-    });
+    const [loans, setLoans] = useState([
+        { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
+        { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
+    ]);
 
     const handleLoanChange = (id: number, field: string, value: string | number) => {
         setLoans(loans.map(loan => loan.id === id ? { ...loan, [field]: value } : loan));
@@ -405,7 +389,7 @@ function LoanComparison({ currency }: { currency: string }) {
     const getShareUrl = () => {
         const params = new URLSearchParams();
         params.set('tab', 'loan-comparison');
-        params.set('loans', JSON.stringify(loans));
+        params.set('loans', JSON.stringify(loans.map(({id, ...rest}) => rest)));
         params.set('currency', currency);
         return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     };
@@ -480,18 +464,16 @@ function LoanComparison({ currency }: { currency: string }) {
 }
 
 function BalanceTransferAnalysis({ currency }: { currency: string }) {
-    const searchParams = useSearchParams();
-
-    const [currentLoan, setCurrentLoan] = useState(() => ({
-        principal: Number(searchParams.get('clp')) || 50000,
-        rate: Number(searchParams.get('clr')) || 12,
-        tenure: Number(searchParams.get('clt')) || 3,
-    }));
-    const [newLoan, setNewLoan] = useState(() => ({
-        rate: Number(searchParams.get('nlr')) || 9,
-        tenure: Number(searchParams.get('nlt')) || 3,
-        fee: Number(searchParams.get('nlf')) || 1,
-    }));
+    const [currentLoan, setCurrentLoan] = useState({
+        principal: 50000,
+        rate: 12,
+        tenure: 3,
+    });
+    const [newLoan, setNewLoan] = useState({
+        rate: 9,
+        tenure: 3,
+        fee: 1,
+    });
     
     const currentResult = calculateTotalInterestAndPayment(currentLoan.principal, currentLoan.rate, currentLoan.tenure);
     const newFeeAmount = (currentLoan.principal * newLoan.fee) / 100;
@@ -579,13 +561,12 @@ function BalanceTransferAnalysis({ currency }: { currency: string }) {
 }
 
 function PrepaymentImpactAnalysis({ currency }: { currency: string }) {
-    const searchParams = useSearchParams();
-    const [loan, setLoan] = useState(() => ({
-        amount: Number(searchParams.get('amount')) || 200000,
-        rate: Number(searchParams.get('rate')) || 9.5,
-        tenure: Number(searchParams.get('tenure')) || 20,
-        prepayment: Number(searchParams.get('prepayment')) || 1000,
-    }));
+    const [loan, setLoan] = useState({
+        amount: 200000,
+        rate: 9.5,
+        tenure: 20,
+        prepayment: 1000,
+    });
     
     const originalResult = calculateTotalInterestAndPayment(loan.amount, loan.rate, loan.tenure);
     const prepaymentResult = calculatePrepayment(loan.amount, loan.rate, loan.tenure, loan.prepayment);
@@ -663,21 +644,17 @@ function PrepaymentImpactAnalysis({ currency }: { currency: string }) {
 }
 
 export function LoanLensApp({ currency }: { currency: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'emi-calculator';
+  const [activeTab, setActiveTab] = useState(defaultTab);
   
   const onTabChange = (tab: string) => {
-    const newParams = new URLSearchParams();
-    newParams.set('tab', tab);
-    newParams.set('currency', currency);
-    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+    setActiveTab(tab);
   }
 
   return (
     <TooltipProvider>
-      <Tabs defaultValue={defaultTab} className="w-full" onValueChange={onTabChange}>
+      <Tabs value={activeTab} className="w-full" onValueChange={onTabChange}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8 h-auto flex-wrap">
           <TabsTrigger value="emi-calculator">EMI Calculator</TabsTrigger>
           <TabsTrigger value="loan-comparison">Loan Comparison</TabsTrigger>
@@ -701,3 +678,5 @@ export function LoanLensApp({ currency }: { currency: string }) {
     </TooltipProvider>
   );
 }
+
+    
