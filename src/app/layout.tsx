@@ -115,10 +115,6 @@ export default function RootLayout({
               {children}
           </main>
           
-          <div className="container py-4">
-            <GoogleAd adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_2" />
-          </div>
-
           <footer className="py-6 md:px-8 md:py-0 border-t">
             <div className="container flex flex-col items-center justify-center gap-4 md:h-24 md:flex-row">
               <p className="text-center text-sm leading-loose text-muted-foreground">
