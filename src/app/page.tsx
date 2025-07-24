@@ -4,6 +4,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LoanLensApp } from '@/components/loan-lens-app';
+import { GoogleAd } from '@/components/google-ad';
 
 function LoanLensPage() {
   const searchParams = useSearchParams();
@@ -11,7 +12,12 @@ function LoanLensPage() {
   const tab = searchParams.get('tab') || 'emi-calculator';
 
   return (
-    <LoanLensApp key={tab} currency={currency} />
+    <>
+      <div className="mb-8">
+         <GoogleAd key={tab} adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
+      </div>
+      <LoanLensApp key={`${tab}-${currency}`} currency={currency} />
+    </>
   );
 }
 

@@ -13,6 +13,7 @@ import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { currencies } from '@/lib/loan-utils';
+import { GoogleAd } from '@/components/google-ad';
 
 function Header() {
   const router = useRouter();

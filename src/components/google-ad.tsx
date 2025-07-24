@@ -20,7 +20,7 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
     const insRef = useRef<HTMLModElement>(null);
 
     useEffect(() => {
-        if (insRef.current && insRef.current.dataset.adStatus === 'filled') {
+        if (!insRef.current || insRef.current.dataset.adStatus === 'filled') {
             return;
         }
 
@@ -43,7 +43,7 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
     }
 
     return (
-        <div className={className} key={adSlot}>
+        <div className={className}>
             <ins
                 ref={insRef}
                 className="adsbygoogle"
