@@ -13,6 +13,14 @@ function LoanLensPage() {
 
   return (
     <>
+      <div className="text-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold font-headline mb-2">
+            Smart Loan & EMI Calculator
+        </h1>
+        <p className="text-lg text-muted-foreground">
+            Analyze, compare, and optimize your loans with powerful financial tools.
+        </p>
+      </div>
       <div className="mb-8">
          <GoogleAd key={tab} adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
       </div>
