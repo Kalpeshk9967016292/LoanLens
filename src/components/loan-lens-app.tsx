@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -193,6 +194,7 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
     }
 
     return (
+      <div className="w-full overflow-x-auto">
         <Table>
             <TableHeader>
                 <TableRow>
@@ -234,6 +236,7 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
                 ))}
             </TableBody>
         </Table>
+      </div>
     )
 }
 
@@ -674,19 +677,12 @@ function PrepaymentImpactAnalysis({ currency, searchParams, updateUrl }: { curre
     );
 }
 
-const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
-
-export function LoanLensApp() {
+export function LoanLensApp({ currency }: { currency: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const currentSearchParams = useSearchParams();
   const defaultTab = currentSearchParams.get('tab') || 'emi-calculator';
-  const [currency, setCurrency] = useState(() => {
-    const urlCurrency = currentSearchParams.get('currency');
-    if (urlCurrency && currencies.includes(urlCurrency)) return urlCurrency;
-    return 'INR';
-  });
-
+  
   const updateUrl = useCallback((params: Record<string, any>, clearLoanParams = false) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
     
@@ -721,40 +717,9 @@ export function LoanLensApp() {
     router.replace(`${pathname}?${newSearch.toString()}`, { scroll: false });
   }
 
-  const handleCurrencyChange = (newCurrency: string) => {
-      setCurrency(newCurrency);
-      const newParams = new URLSearchParams(window.location.search);
-      newParams.set('currency', newCurrency);
-      router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
-  }
-  
-  useEffect(() => {
-    // Set initial currency in URL if not present
-    if (!currentSearchParams.has('currency')) {
-        handleCurrencyChange(currency);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <TooltipProvider>
       <div className="container py-8">
-        <div className="flex justify-end mb-4">
-            <div className="w-40">
-                <Select value={currency} onValueChange={handleCurrencyChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {currencies.map((c) => (
-                        <SelectItem key={c} value={c}>
-                            {c}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
         <Tabs defaultValue={defaultTab as string} className="w-full" onValueChange={onTabChange}>
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8 h-auto flex-wrap">
             <TabsTrigger value="emi-calculator">EMI Calculator</TabsTrigger>
@@ -764,21 +729,19 @@ export function LoanLensApp() {
           </TabsList>
           
           <TabsContent value="emi-calculator">
-              <EmiCalculator currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'emi-calculator', currency})} />
+              <EmiCalculator currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'emi-calculator'})} />
           </TabsContent>
           <TabsContent value="loan-comparison">
-              <LoanComparison currency={currency} searchParams={currentSearchParams} updateUrl={(params, clear) => updateUrl({...params, tab: 'loan-comparison', currency}, clear)} />
+              <LoanComparison currency={currency} searchParams={currentSearchParams} updateUrl={(params, clear) => updateUrl({...params, tab: 'loan-comparison'}, clear)} />
           </TabsContent>
           <TabsContent value="balance-transfer">
-              <BalanceTransferAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'balance-transfer', currency})} />
+              <BalanceTransferAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'balance-transfer'})} />
           </TabsContent>
           <TabsContent value="prepayment-impact">
-              <PrepaymentImpactAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'prepayment-impact', currency})} />
+              <PrepaymentImpactAnalysis currency={currency} searchParams={currentSearchParams} updateUrl={(params) => updateUrl({...params, tab: 'prepayment-impact'})} />
           </TabsContent>
         </Tabs>
       </div>
     </TooltipProvider>
   );
 }
-
-    

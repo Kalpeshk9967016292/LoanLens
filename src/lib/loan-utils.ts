@@ -1,5 +1,7 @@
 import { addMonths, format } from 'date-fns';
 
+export const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
+
 export const calculateEMI = (principal: number, annualRate: number, tenureYears: number): number => {
     if (principal <= 0 || annualRate <= 0 || tenureYears <= 0) return 0;
 
