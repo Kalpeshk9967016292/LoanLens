@@ -107,10 +107,6 @@ export default function RootLayout({
             <Header />
           </Suspense>
 
-          <div className="container py-4">
-            <GoogleAd adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
-          </div>
-
           <main className="flex-1">
               {children}
           </main>

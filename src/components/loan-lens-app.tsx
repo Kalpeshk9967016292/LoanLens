@@ -48,6 +48,7 @@ import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ScrollArea } from './ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { GoogleAd } from './google-ad';
 
 const chartConfig = {
   principal: { label: 'Principal', color: 'hsl(var(--primary))' },
@@ -720,6 +721,9 @@ export function LoanLensApp({ currency }: { currency: string }) {
   return (
     <TooltipProvider>
       <div className="container py-8">
+        <div className="container py-4">
+            <GoogleAd key={defaultTab} adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
+        </div>
         <Tabs defaultValue={defaultTab as string} className="w-full" onValueChange={onTabChange}>
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8 h-auto flex-wrap">
             <TabsTrigger value="emi-calculator">EMI Calculator</TabsTrigger>

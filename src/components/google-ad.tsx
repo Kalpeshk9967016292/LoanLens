@@ -23,7 +23,7 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
         } catch (err) {
             console.error("Ad push error:", err);
         }
-    }, []); // Empty dependency array ensures this runs only once on mount
+    }, []);
 
     if (!adClient || !adSlot || adClient.startsWith("ca-pub-YOUR") || adSlot.startsWith("YOUR_AD")) {
         return (
@@ -37,7 +37,7 @@ export function GoogleAd({ adSlot, adClient, className, style = { display: 'bloc
     }
 
     return (
-        <div key={adSlot} className={className}>
+        <div className={className}>
             <ins
                 className="adsbygoogle"
                 style={style}
