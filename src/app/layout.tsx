@@ -13,6 +13,7 @@ import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { currencies } from '@/lib/loan-utils';
+import { GoogleAd } from '@/components/google-ad';
 
 function Header() {
   const router = useRouter();
@@ -88,6 +89,13 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=PT+Sans:wght@400;700&display=swap"
           rel="stylesheet"
         />
+        <Script 
+          id="adsense-script"
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body
         className={cn(
@@ -99,10 +107,18 @@ export default function RootLayout({
             <Header />
           </Suspense>
 
+          <div className="container py-4">
+            <GoogleAd adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_1" />
+          </div>
+
           <main className="flex-1">
               {children}
           </main>
           
+          <div className="container py-4">
+            <GoogleAd adClient="ca-pub-YOUR_PUBLISHER_ID" adSlot="YOUR_AD_SLOT_ID_2" />
+          </div>
+
           <footer className="py-6 md:px-8 md:py-0 border-t">
             <div className="container flex flex-col items-center justify-center gap-4 md:h-24 md:flex-row">
               <p className="text-center text-sm leading-loose text-muted-foreground">
