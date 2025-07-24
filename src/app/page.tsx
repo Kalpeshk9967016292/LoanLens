@@ -8,19 +8,11 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LoanLensApp } from '@/components/loan-lens-app';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { currencies } from '@/lib/loan-utils';
+import { GoogleAd } from '@/components/google-ad';
 
-function AdPlaceholder({ id, description }: { id: string, description: string }) {
-  return (
-    <div id={id} className="container my-4 text-center">
-      <div 
-        className="w-full h-24 bg-muted/50 rounded-lg flex items-center justify-center border border-dashed"
-        data-ai-hint="advertisement banner"
-      >
-        <p className="text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
+const AD_CLIENT = "ca-pub-YOUR_PUBLISHER_ID";
+const AD_SLOT_TOP = "YOUR_AD_SLOT_ID_1";
+const AD_SLOT_BOTTOM = "YOUR_AD_SLOT_ID_2";
 
 export default function Home() {
   const router = useRouter();
@@ -79,15 +71,19 @@ export default function Home() {
         </div>
       </header>
 
-      <AdPlaceholder id="ad-slot-top" description="Top Ad Banner" />
+      <div className="container my-4">
+        <GoogleAd adClient={AD_CLIENT} adSlot={AD_SLOT_TOP} />
+      </div>
 
       <main className="flex-1">
         <Suspense fallback={<div className="container py-8">Loading...</div>}>
           <LoanLensApp currency={currency} />
         </Suspense>
       </main>
-
-      <AdPlaceholder id="ad-slot-bottom" description="Bottom Ad Banner" />
+      
+      <div className="container my-4">
+        <GoogleAd adClient={AD_CLIENT} adSlot={AD_SLOT_BOTTOM} />
+      </div>
 
       <footer className="py-6 md:px-8 md:py-0 border-t">
         <div className="container flex flex-col items-center justify-center gap-4 md:h-24 md:flex-row">
