@@ -107,15 +107,12 @@ const NumberInputWithSlider = ({
 );
 
 
-function ShareButton() {
+function ShareButton({ getShareUrl }: { getShareUrl: () => string }) {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('currency');
-        const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-
+        const shareUrl = getShareUrl();
         navigator.clipboard.writeText(shareUrl).then(() => {
             setCopied(true);
             toast({
@@ -219,10 +216,14 @@ const AmortizationTable = ({ schedule, currency }: { schedule: YearlyAmortizatio
 }
 
 function EmiCalculator({ currency }: { currency: string }) {
-  const [amount, setAmount] = useState(100000);
-  const [rate, setRate] = useState(8.5);
-  const [tenure, setTenure] = useState(5);
-  const [startDate, setStartDate] = useState(new Date());
+  const searchParams = useSearchParams();
+  const [amount, setAmount] = useState(() => Number(searchParams.get('amount')) || 100000);
+  const [rate, setRate] = useState(() => Number(searchParams.get('rate')) || 8.5);
+  const [tenure, setTenure] = useState(() => Number(searchParams.get('tenure')) || 5);
+  const [startDate, setStartDate] = useState(() => {
+      const dateStr = searchParams.get('startDate');
+      return dateStr ? new Date(dateStr) : new Date();
+  });
 
   const { emi, totalInterest, totalPayment } = useMemo(() => {
     return calculateTotalInterestAndPayment(amount, rate, tenure);
@@ -236,6 +237,17 @@ function EmiCalculator({ currency }: { currency: string }) {
     { name: 'Principal Amount', value: amount, fill: 'var(--color-principal)' },
     { name: 'Total Interest', value: totalInterest, fill: 'var(--color-interest)' },
   ];
+
+  const getShareUrl = () => {
+    const params = new URLSearchParams();
+    params.set('tab', 'emi-calculator');
+    params.set('amount', String(amount));
+    params.set('rate', String(rate));
+    params.set('tenure', String(tenure));
+    params.set('startDate', startDate.toISOString());
+    params.set('currency', currency);
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  };
 
   return (
     <div className="space-y-8">
@@ -281,7 +293,7 @@ function EmiCalculator({ currency }: { currency: string }) {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="font-headline">Results</CardTitle>
-              <ShareButton/>
+              <ShareButton getShareUrl={getShareUrl} />
             </div>
             <CardDescription>Your estimated monthly payment and total costs.</CardDescription>
           </CardHeader>
@@ -335,18 +347,31 @@ function EmiCalculator({ currency }: { currency: string }) {
 
 
 function LoanComparison({ currency }: { currency: string }) {
-    const [loans, setLoans] = useState([
-        { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
-        { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
-    ]);
+    const searchParams = useSearchParams();
+    const [loans, setLoans] = useState(() => {
+        const loansParam = searchParams.get('loans');
+        if (loansParam) {
+            try {
+                return JSON.parse(loansParam);
+            } catch (e) {
+                // fall back to default
+            }
+        }
+        return [
+            { id: Date.now() + 1, name: 'Loan 1', amount: 100000, rate: 8.5, tenure: 10 },
+            { id: Date.now() + 2, name: 'Loan 2', amount: 100000, rate: 9.0, tenure: 10 },
+        ];
+    });
 
     const handleLoanChange = (id: number, field: string, value: string | number) => {
         setLoans(loans.map(loan => loan.id === id ? { ...loan, [field]: value } : loan));
     };
 
     const addLoan = () => {
-        const newLoan = { id: Date.now(), name: `Loan ${loans.length + 1}`, amount: 100000, rate: 10, tenure: 15 };
-        setLoans([...loans, newLoan]);
+        if (loans.length < 5) {
+            const newLoan = { id: Date.now(), name: `Loan ${loans.length + 1}`, amount: 100000, rate: 10, tenure: 15 };
+            setLoans([...loans, newLoan]);
+        }
     };
 
     const removeLoan = (id: number) => {
@@ -376,6 +401,14 @@ function LoanComparison({ currency }: { currency: string }) {
         });
         return config;
     }, [loans]);
+    
+    const getShareUrl = () => {
+        const params = new URLSearchParams();
+        params.set('tab', 'loan-comparison');
+        params.set('loans', JSON.stringify(loans));
+        params.set('currency', currency);
+        return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    };
 
     return (
         <div className="flex flex-col gap-8">
@@ -404,18 +437,20 @@ function LoanComparison({ currency }: { currency: string }) {
                         </CardContent>
                     </Card>
                 ))}
-                 <div className="flex items-center justify-center min-h-[300px]">
-                    <Button variant="outline" className="w-full h-full border-dashed" onClick={addLoan}>
-                        <PlusCircle className="mr-2 h-5 w-5" />
-                        Add Another Loan
-                    </Button>
-                </div>
+                 {loans.length < 5 && (
+                    <div className="flex items-center justify-center min-h-[300px]">
+                        <Button variant="outline" className="w-full h-full border-dashed" onClick={addLoan}>
+                            <PlusCircle className="mr-2 h-5 w-5" />
+                            Add Another Loan
+                        </Button>
+                    </div>
+                )}
             </div>
             <Card className="bg-card/50">
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">Comparison Results</CardTitle>
-                        <ShareButton/>
+                        <ShareButton getShareUrl={getShareUrl} />
                     </div>
                     <CardDescription>
                         A side-by-side comparison of your loan options.
@@ -445,16 +480,18 @@ function LoanComparison({ currency }: { currency: string }) {
 }
 
 function BalanceTransferAnalysis({ currency }: { currency: string }) {
-    const [currentLoan, setCurrentLoan] = useState({
-        principal: 50000,
-        rate: 12,
-        tenure: 3,
-    });
-    const [newLoan, setNewLoan] = useState({
-        rate: 9,
-        tenure: 3,
-        fee: 1,
-    });
+    const searchParams = useSearchParams();
+
+    const [currentLoan, setCurrentLoan] = useState(() => ({
+        principal: Number(searchParams.get('clp')) || 50000,
+        rate: Number(searchParams.get('clr')) || 12,
+        tenure: Number(searchParams.get('clt')) || 3,
+    }));
+    const [newLoan, setNewLoan] = useState(() => ({
+        rate: Number(searchParams.get('nlr')) || 9,
+        tenure: Number(searchParams.get('nlt')) || 3,
+        fee: Number(searchParams.get('nlf')) || 1,
+    }));
     
     const currentResult = calculateTotalInterestAndPayment(currentLoan.principal, currentLoan.rate, currentLoan.tenure);
     const newFeeAmount = (currentLoan.principal * newLoan.fee) / 100;
@@ -462,6 +499,19 @@ function BalanceTransferAnalysis({ currency }: { currency: string }) {
     const newResult = calculateTotalInterestAndPayment(newPrincipal, newLoan.rate, newLoan.tenure);
 
     const totalSavings = currentResult.totalPayment - newResult.totalPayment;
+    
+    const getShareUrl = () => {
+        const params = new URLSearchParams();
+        params.set('tab', 'balance-transfer');
+        params.set('clp', String(currentLoan.principal));
+        params.set('clr', String(currentLoan.rate));
+        params.set('clt', String(currentLoan.tenure));
+        params.set('nlr', String(newLoan.rate));
+        params.set('nlt', String(newLoan.tenure));
+        params.set('nlf', String(newLoan.fee));
+        params.set('currency', currency);
+        return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    };
 
     return (
         <div className="grid lg:grid-cols-2 gap-8">
@@ -491,7 +541,7 @@ function BalanceTransferAnalysis({ currency }: { currency: string }) {
                 <CardHeader>
                      <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">Analysis</CardTitle>
-                        <ShareButton/>
+                        <ShareButton getShareUrl={getShareUrl}/>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -529,15 +579,27 @@ function BalanceTransferAnalysis({ currency }: { currency: string }) {
 }
 
 function PrepaymentImpactAnalysis({ currency }: { currency: string }) {
-    const [loan, setLoan] = useState({
-        amount: 200000,
-        rate: 9.5,
-        tenure: 20,
-        prepayment: 1000,
-    });
+    const searchParams = useSearchParams();
+    const [loan, setLoan] = useState(() => ({
+        amount: Number(searchParams.get('amount')) || 200000,
+        rate: Number(searchParams.get('rate')) || 9.5,
+        tenure: Number(searchParams.get('tenure')) || 20,
+        prepayment: Number(searchParams.get('prepayment')) || 1000,
+    }));
     
     const originalResult = calculateTotalInterestAndPayment(loan.amount, loan.rate, loan.tenure);
     const prepaymentResult = calculatePrepayment(loan.amount, loan.rate, loan.tenure, loan.prepayment);
+    
+    const getShareUrl = () => {
+        const params = new URLSearchParams();
+        params.set('tab', 'prepayment-impact');
+        params.set('amount', String(loan.amount));
+        params.set('rate', String(loan.rate));
+        params.set('tenure', String(loan.tenure));
+        params.set('prepayment', String(loan.prepayment));
+        params.set('currency', currency);
+        return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    };
 
     return (
         <div className="grid lg:grid-cols-2 gap-8">
@@ -557,7 +619,7 @@ function PrepaymentImpactAnalysis({ currency }: { currency: string }) {
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle className="font-headline">Prepayment Impact</CardTitle>
-                            <ShareButton/>
+                            <ShareButton getShareUrl={getShareUrl} />
                         </div>
                         <CardDescription>See how extra monthly payments can save you money and shorten your loan term.</CardDescription>
                     </CardHeader>
@@ -607,8 +669,9 @@ export function LoanLensApp({ currency }: { currency: string }) {
   const defaultTab = searchParams.get('tab') || 'emi-calculator';
   
   const onTabChange = (tab: string) => {
-    const newParams = new URLSearchParams(window.location.search);
+    const newParams = new URLSearchParams();
     newParams.set('tab', tab);
+    newParams.set('currency', currency);
     router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
   }
 
